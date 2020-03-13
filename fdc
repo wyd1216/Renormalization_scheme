@@ -1,0 +1,747 @@
+
+   symbolic(fluid'(model_in_and_out_file_list wang_load_list wang_in_list   
+                   model_home model_name model_author model_time model_state 
+                   process_in_and_out_file_list globel_option_list 
+                   process_home process_name process_author process_time 
+                   generator_1 generator_2 generator_3 fdc2ok fdc3ok 
+                   massolve equationlist feyrshow  midmodel midmodel_add
+                   particle_table add_fortran_list amp_method 
+                   model_gen particle_table_gen Feynman_rules  
+                   model_input matterintinput symbole_list symbole_list_gen 
+                   atom_m_list  
+                   sout alldiagramlist outadir fout 
+                   intldir psintlib alldiagram_add  physical_cut
+                   physical_model change_parameters corelation
+                   supersymmetry sup_anti_list   
+		   k_old spflist_add soft_break gl_s_list n_bound_state
+		   namel inpl ncorrection add_parameters
+                   showmore selfenergy justnumber ndiagfile ncolor 
+                   nout nsy nsym state set_ext_sym mkpsymboleok
+                   model_def_example process_def_example n_su3
+                   czslist complextype 
+                   fasl_type_list f77 hostname 
+                   ptypelist_add physical_parameters physical_parameters_add   
+                   latex_s_list_add all_parameter_list_add phyinput_add
+                   splist_add platexname_add new_parameter_list mprocess 
+		   fdc_home pdltitle pdl realtype nep ni_p
+                   inputlist input_list couplist option effective_numbers
+                   wdlist maslist2 paramlist phyinput gbsymmetrylist
+                   keep_list2 nnqcd amp_information number_of_loop 
+       %%%%%%%% parameters for kinematics %%%%%%%%%%%%%%%%%%%%%%%%
+                   phys_cut resonace_list 
+                   acc1 acc2 itmx1 itmx2 ncall mxdim keep_all              %
+                   keep_list keep_all_s drop_all_s keep_all_t 
+		   namell cm_energys polarizations add_h1
+                   drop_all_t  histograms scatters polarizations 
+       %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
+                   constlist kin_trival no_change_to_t_photon no_change_to_s_photon
+                   no_reorder_gamma_matrix charge_c_op_pa_list 
+                   event_generator p2flist_qiw particlelist ninitial
+                   ec_sqrts bases_plot group alldiagram 
+                   fmmlist mass_list n_y_0 section physical_parameters_gen  
+                   diagram_keep_list  pr_amp ampnamelist1 mass_change_list 
+                   ll_num_list  special_case_option special_case_option1 qiw_event_generator  
+                   c0c1_list cut_test_only ceq_e1e2 alpha_chose
+                   reduce_version do_fs_check do_looptool_check
+                   ddim simp_dimension_treatment n_fdclib_version 
+                   inclusive_observation only_one_loop imagpart realpart dconjg
+                   fdclib replace_for_vertice add_v_index fort_32 cmplx_type
+                   positive_param_list spliting_func_list frag_func_list any_frag pr_id
+                   ch_genpolart do_fint_after_amp direct_sp_sp_3pj_list use_lixihuai 
+                   gen_pw_q_term csub_in_q_term li_qp_list  gbm 
+                   approximation_rules  phase_space_special_porint
+                   add_all_diag  w6p_list_init  rloop
+
+                 ) 
+           ); 
+
+   model_in_and_out_file_list:='(
+                   model_state midmodel_add
+                   massolve equationlist feyrshow  midmodel 
+                   particle_table symbole_list_gen
+                   model_gen particle_table_gen Feynman_rules  
+                   model_input matterintinput symbole_list 
+                   physical_parameters 
+                   physical_parameters_gen 
+                   p2flist_qiw 
+                   w6p_list_init  
+                  );   
+
+   process_in_and_out_file_list:='( 
+                 sout alldiagramlist outadir fout
+                 amp_information option
+                 );  
+   
+   globel_option_list:='(showmore selfenergy justnumber ndiagfile ncolor 
+                         nout nsy nsym state set_ext_sym mkpsymboleok); 
+
+   share model_name,model_home,model_author,model_time,model_state, 
+         process_home,process_name,process_author,process_time, 
+         matterintinput,feyrshow,fdc_home,charge_def,approximation_rules,  
+         model_def_example,process_def_example,phys_cut, 
+         physical_model,intput_list,add_h1,spflist_add;
+
+   share realtype,complextype,only_one_loop,fdclib,gbm;
+   operator guv;
+   phys_cut:={};
+   phyinput_add:={}; 
+   approximation_rules:={};
+
+   f77:='f77$
+
+   realtype:='"real*8"; 
+   complextype:='"complex*16";
+
+   realtype:='"real*16"; 
+   complextype:='"complex*32";
+
+%   symbolic operator dressm;
+   symbolic procedure dressma(a,b)$ 
+   begin scalar x,y,c;
+   c:=if car(x:=reverse(explode(a)))='!" then  
+         if car(y:=explode(b))='!" then 
+            compress(append(reverse(cdr(x)),cdr(y))) 
+         else compress(append(reverse(cdr(x)),append(y,'(!"))))
+      else 
+         if car(y:=explode(b))='!" then 
+            compress(append(cons('!",explode(a)),cdr(y))) 
+         else compress(append(explode(a),y)); 
+   return c; 
+   end$   
+
+
+   symbolic procedure model_generator1();
+   begin; 
+   if generator_1='ok and generator_2='ok and generator_3='ok then   
+      symerr("please to check 'model_state' file",nil); 
+   generator_1:=1$ 
+   if supersymmetry then << 
+      sfwinput('try);  
+      swinput('re_parameter)$  
+   >> else << 
+      swinput('model_generator)$   
+      swinput('get_pchalist)$   
+      model_generator_init();
+   >>; 
+   system("[ ! -d diagram ] && mkdir diagram");
+   system("[ ! -d fort ] && mkdir fort");
+   system("[ ! -d debug ] && mkdir debug");
+   system("[ ! -d system ] && mkdir system");
+   swinput('trace_file);
+   winput(model_input)$ 
+   winput(symbole_list)$ 
+   reconstruct_input_data();
+   gen_matterintinput();
+   showtime; 
+   write " You are building the ",model_name," in the directory ",model_home,"."; 
+   write " The matter interaction terms of this model are generated by the system"; 
+   write " and are placed in the file ",matterintinput,". Please revise it according to"; 
+   write " you choose about the model right now. You can 'bye' REDUCE and do it and"; 
+   write " restat the procedure without performing model_generator1() and directly perform";  
+   write " model_generator2(). You can also continue to perform model_generator2()";
+   write " without 'bye' REDUCE if there is another way for you to revise the file";  
+   write " Successed in first step for model generation"$
+   off nat;
+   generator_1:='ok$ 
+   wangout(model_state,1)$ 
+   write "generator_1:='ok$"$ 
+   out t;
+   out t;
+   write "     *  ...... Successed in first step"$
+   end;  
+
+   symbolic procedure model_generator2();
+   begin;
+   if generator_1='ok and generator_2='ok and generator_3='ok then   
+      symerr("please to check 'model_state' file",nil); 
+   if generator_1=1 then 
+      symerr("something wrong in model_generator1()",nil);
+   generator_2:='1$ 
+   if supersymmetry then << 
+      sfwinput('try); 
+      swinput('re_parameter)$ 
+   >>  else << 
+      swinput('model_generator)$   
+      swinput('renormalization_init)$   
+      swinput('exp_simp)$   
+      swinput('get_pchalist)$   
+      model_generator_init();
+   >>;
+   sfwinput('cg)$ 
+   swinput('trace_file);
+   if generator_1='ok then nil 
+   else <<  
+          winput(model_input)$ 
+          reconstruct_input_data();
+   >>; 
+   winput(matterintinput); 
+   algebraic(mat((1)))$
+   generate_lagrangian(); 
+   remove_all_db();
+   gavertex(nil)$ 
+   frprint()$ 
+   mksmpl();
+   showtime;  
+   write " You are building the ",model_name," in the directory ",model_home,"."; 
+   write " The Feynman rules are generated and placed in the file ",feyrshow,".";
+   write " Please go to look at it and find out which vertices you want to drop."; 
+   write " Then you should created a file vertices_drop_list in which you write a list like:";
+   wspace();
+   write "   droplist:='(2 3 7 ...... 19); ";
+   wspace();
+   write "   ;end; ";
+   wspace();
+   write " This means that vertices 2,3,7,......,19 will be droped";
+   write " You can 'bye' REDUCE and do it and"; 
+   write " restat the procedure without performing model_generator1() and model_generator2(),";
+   write " and directly perform model_generator3(). You can also continue to perform ";
+   write " model_generator3() without 'bye' REDUCE if there is another way for you to"; 
+   write " revise the file"; 
+   off nat;
+   generator_2:='ok$ 
+   wangout(model_state,1)$ 
+   write "generator_2:='ok$"$  
+   wspace();
+   write ";end;"$ 
+   terpri();
+   out t;
+   terpri();
+   write "     *  ...... Successed in second step"$
+   end; 
+
+   symbolic procedure model_generator3(); 
+   begin;
+   if generator_1='ok and generator_2='ok and generator_3='ok then   
+      symerr("please to check 'model_state' file",nil);
+   if generator_1=1 then 
+      symerr("something wrong in model_generator1()",nil);
+   if generator_2=1 then 
+      symerr("something wrong in model_generator2()",nil);
+   generator_3:='1$ 
+   swinput('model_compact);   
+   model_compact_init();
+   swinput('trace_file);
+   winput(physical_parameters)$  
+   winput(midmodel)$  
+   winput(particle_table)$ 
+   if (system("[ -f vertices_drop_list ]"))=0 then winput('vertices_drop_list)$  
+   mkhhhh();
+   if (system("[ -f add_vertices ]"))=0 then winput('add_vertices)$  
+   mkall(); 
+   mkpdl(); 
+   add_vertex();
+   %change_fermion_vertex_psign();
+   genmodel2(0); 
+   mkfeynmanrule();
+   gen_phy_parameters();
+   mkmidmodel_add();
+   showtime;  
+   write " You have built the ",model_name," in the directory ",
+           model_home," successfully.";
+   off nat; 
+   algebraic(<< 
+     generator_3:='ok$ 
+     wangout(model_state,1)$  
+     if symbolic(null(generator_2)) then << 
+     write "generator_1:='ok$"$ 
+     write "generator_2:='ok$"$ 
+     >>;
+     write "generator_3:='ok$"$ 
+     write ";end;"$ 
+     wangout(model_state,0)$  
+   >>);
+   write_start_process(); 
+   terpri();
+   write "     *  ...... Successed in third step"$
+   end; 
+   
+   symbolic procedure main_do_renormalization();
+   begin scalar a,b;
+   swinput('model_generator)$
+   swinput('model_compact)$ 
+   swinput('exp_simp)$
+   algebraic(gamma(2));
+   swinput('renormalization)$
+   swinput('renormalization1)$
+   swinput('gen_vertex)$
+   winput(model_input)$ 
+   winput(midmodel)$
+   winput(symbole_list)$
+   winput(physical_parameters_gen)$
+   winput(particle_table_gen)$
+   swinput('trace_file);
+   adebug("okok 1",nil);
+   a:=do_all_renormalization();   
+   b:=renorma_general(cadr(a));
+   winput(Feynman_rules)$
+   winput(model_gen)$
+   adebug("okok 2",nil);
+   b:=gen_vertex(cadr(a),caddr(a));
+   b:=counterterm_generate1(car(a),b); 
+   b:=list(caar(rloop),cdar(rloop)/2);
+   add_count_term_to_model_and_compact(car(b),cadr(b));
+   %%------------------------------------------------------------------
+   %%    out put for model and Feynmanrules
+   %%    add:
+   %%        w6p_list   for ws1 ws2 ....
+   %% 
+   remove_all_db();
+   genmodel2(1);
+   mkfeynmanrule();
+   mkfeynmanrule_renormalization(); 
+   terpri();
+   write "     *  ...... Successed in renormalization step"$
+   end;
+
+
+   symbolic procedure renormalization_check();
+   begin scalar a,b;
+   algebraic(gamma(2));
+   swinput('renormalization)$
+   swinput('gen_vertex)$
+   winput(physical_parameters_gen)$
+   winput(particle_table_gen)$
+   swinput('trace_file);
+   winput(Feynman_rules)$
+   winput(model_gen)$
+   b:=gen_vertex(cadr(a),caddr(a));
+   end;
+
+   symbolic operator diagram_generator; 
+   symbolic procedure diagram_generator(n_coupling,a);
+   begin; 
+   libsys(a,fdc_home);
+   winput(Feynman_rules)$  
+   swinput('trace_file); 
+   system("[ ! -d diagram ] && mkdir diagram");
+   wmain94(ncorrection,n_coupling)$ 
+%  wmain(ncorrection,n_coupling)$  
+   write_diagram_information(); 
+   write_next_amplitude();
+   showtime$
+   out t;
+   write "     *  ...... Successed in Feynman Diagram Generation"$
+   end;  
+ 
+   symbolic procedure write_diagram_information(); 
+   begin;
+   end; 
+ 
+   symbolic procedure write_next_amplitude(); 
+   begin; 
+   write " The next step is to evaluate the amplitude by performing "; 
+   write " amplitude_evaluation()";  
+   write_next_kinematic();
+   end; 
+
+   symbolic procedure write_next_kinematic(); 
+   begin; 
+   write " The next step is to generate kinematics by performing "; 
+   write " generation_kinematics()";  
+   end; 
+
+   symbolic operator generation_kinematics;
+   symbolic procedure generation_kinematics();
+   begin scalar n;
+   if k_old then swinput('kinematics_generator_old) else   
+   if inclusive_observation then swinput('kinematics_generator_inclusive)    
+   else swinput('kinematics_generator)$    
+   if qiw_event_generator='ok then << 
+      swinput('kinematics_qiw)$ 
+      event_generator:='ok;
+   >>;
+   sfwinput('ltex)$   
+   winput(alldiagramlist); 
+   if amp_method=3 then ch_genpolart:='ok;
+   swinput('structure_f);
+   winput(amp_information);
+   if add_all_diag then winput('add_diag_kin);
+   if amp_method=2 then swinput('kinematics_loop2) else
+   if ampnamelist1 or cut_test_only then 
+      if amp_method memq '(1 3) then << 
+         swinput('kinematics_loop1); 
+         amp_method:=1;
+      >> else;
+   swinput('trace_file);
+   nep:=length(namel);  
+   re_mk_change_parameters();
+   debug("f77===",f77);
+   n:=wmain_kinematic();
+   gen_globel_paramter_fortran()$
+   gen_makefile_total(n); 
+   if qiw_event_generator='ok then <<
+      winput(p2flist_qiw);
+      swinput('gfdcpythia_qiw)$
+      gupevent_qiw();
+%%%%%%%%% gfdcdata_qiw() is used to generate fdcdata_qiw.inc in each t-dir
+%%%%%%%%% now this file is moved to $(fdcevent)/lib
+%      gfdcdata_qiw();
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   >>;
+   showtime$ 
+   out t;
+   write "     *  ...... Successed in Kinematics Generation."$
+   end; 
+
+
+   symbolic operator process_chose23;
+   symbolic procedure process_chose23(aa);  
+   begin; 
+   sfwinput('cg)$  
+   swinput('option_s)$
+   winput(aa)$   
+   for each x in process_in_and_out_file_list do 
+       if process_home then set(x,dressm(process_home,eval(x)));  
+   if physical_model neq 1 then model_chose1(dressm(model_home,"model.def")) 
+   else write_model_information();  
+   winput(physical_parameters_gen); 
+   winput(particle_table_gen)$
+   winput(model_gen)$
+   winput(symbole_list_gen)$
+   winput(option)$
+   write_process_information();   
+   for each x in inputlist do 
+       if par1(car(x),input_list)=nil then input_list:=x.input_list;
+   phyinput:=for each x in phyinput collect if atom(x) then x else cadr(x);
+   chose_fortran_16_or_32(); 
+   end; 
+
+   symbolic procedure is_tree_calculation();   
+   if ncorrection=nil or equal(for each x in ncorrection sum cadr(x),0) then 1;
+
+   symbolic operator amplitude_evaluation;
+   symbolic procedure amplitude_evaluation();
+   begin;  
+   if amp_method='nil then 
+      if length(namel)>5 then amp_method:='tree else amp_method:='amp; 
+   if gen_pw_q_term='ok then amp_method:='2$
+   if amp_method='tree_old then swinput('tree_old) else 
+   if amp_method='test then swinput('treea) else 
+   if amp_method='tree then swinput('tree) else
+   if amp_method memq '(ampn_scut) then sfwinput('ampn_scut) else
+   if amp_method memq '(amp amptree) then << 
+      sfwinput('gblib)$ 
+      sfwinput('gb_tensor)$ 
+      sfwinput('gb_scalar)$ 
+      sfwinput('ampn);
+   >> else
+   if amp_method='asimp then swinput('ampn_simp) else 
+   if amp_method='helicity then swinput('ampn_helicity) 
+   else <<
+      inconsistent_stop(amp_method);
+      if amp_method=3 then sfwinput('loop3) else 
+      if amp_method=2 then sfwinput('loop2) else 
+      if amp_method=1 then swinput('loop1) 
+      else symerr("wrong amp_method",nil);
+      if amp_method=3 then amp_method:=1; 
+      if use_lixihuai='ok then sfwinput('lixihuai); 
+      sfwinput('gblib)$ 
+      sfwinput('feynman_pa_int1); 
+      sfwinput('gb_tensor)$ 
+      sfwinput('gb_scalar)$ 
+      sfwinput('gb_feynman_pa_int)$ 
+      sfwinput('gbsign)$ 
+   >>;
+   if amp_method=0 or simp_dimension_treatment='ok then ddim:='4; 
+   if amp_method=0 then  amp_method:=1; 
+   sfwinput('ltex); 
+   swinput('trace_file); 
+   system("[ ! -d fort ] && mkdir fort"); 
+   winput(Feynman_rules)$ 
+   if system(dressm(dressm("[ -f ",w6p_list_init)," ]"))=0 then winput(w6p_list_init)$  
+   winput(alldiagramlist); 
+   if kin_trival then << 
+      no_change_to_t_photon:='ok;
+      no_change_to_s_photon:='ok; 
+   >>;
+   gen_wdlist()$
+   if section=0 then <<
+      gen_latex_s_list();
+      symbolic(p_latex_head_out());
+      symbolic(latex_out_close());
+   >> else <<
+      %winput(alldiagramlist);
+      gen_wdlist()$
+      gen_latex_s_list();
+      symbolic(p_latex_head_out());
+      if pr_amp then diagram_keep_list:=nil;
+      swinput('trace_file);
+      wmain_amplitude();
+      symbolic(latex_out_close());
+   >>;
+%   gen_globel_paramter_fortran()$
+%   genfermion_related_function(); 
+   showtime$ 
+   out t;
+   write "     *  ...... Successed in Amplitude manipulation and Fortran source generation"$
+   end; 
+
+   symbolic operator model_chose; 
+   symbolic procedure model_chose(aa); 
+   begin;
+   winput(aa)$  
+   for each x in model_in_and_out_file_list do  
+       if eval(x) then set(x,dressm(model_home,eval(x)));  
+   write " You choose the ",model_name," in the directory ",model_home,",";
+   write " which is inputed by ",model_author," on ",model_time,"."; 
+   winput(model_state);
+   if generator_1='ok and generator_2='ok and generator_3='ok then   
+      write_start_process() 
+   else << 
+           generator_1:=nil;
+           generator_2:=nil;
+           generator_3:=nil;
+           write_build_model();  
+           wang_in_list:=nil;
+        >>;
+   physical_model:=1; 
+   end; 
+   
+   symbolic operator model_chose1; 
+   symbolic procedure model_chose1(aa); 
+   begin;
+   winput(aa)$  
+   for each x in model_in_and_out_file_list do  
+       if eval(x) then set(x,dressm(model_home,eval(x))); 
+   write_model_information();   
+   winput(model_state);
+   if generator_1='ok and generator_2='ok and generator_3='ok then nil  
+   else << write_build_model_first(); 
+           symerr("Please build the model at first",nil); 
+        >>; 
+   physical_model:=1; 
+   end; 
+
+   symbolic procedure write_build_model_first(); 
+   begin; 
+   write " But the ",model_name," have not build in the directory:"; 
+   write " ",model_home;
+   write " Please go through the procedure to build  the model at first";
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   end; 
+
+   symbolic procedure write_build_model(); 
+   begin; 
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%---FDC---%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   write " %  To build the model, the first step is to perform:                        %"; 
+   write " %     model_generator1();                                                   %"; 
+   write " %  If you have already run it or you are sure matter interaction terms in   %"; 
+   write " %  the file ",matterintinput," is ok.";
+   write " %  Be carefull about the matter interaction terms, Then you can perform     %"; 
+   write " %     model_generator2();                                                   %";
+   write " %  if it already be run and you are sure that the vertices which you want   %"; 
+   write " %  to drop are listed in the file ";
+   write " %  vertices_drop_list"; 
+   write " %  Then you can go head to perform:                                         %";  
+   write " %     model_generator3();                                                   %";
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   end; 
+
+   symbolic procedure write_start_process(); 
+   begin; 
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%---FDC---%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   write " %  The model is already built, so that you can go directly to chose         %"; 
+   write " %  Physical process by perform:                                             %"; 
+   write " %  process_chose(aa);                                                       %"; 
+   write " %  Where aa refer to the file in which the process definition information   %";  
+   write " %  is stored. The example of it could be found in file:                     %"; 
+   write " %  ",process_def_example; 
+   write " %  If you want to rebuild the model with some other choice, You must delete %"; 
+   write " %  all lines in the file ",model_state; 
+   write " %  Then run REDUCE and FDC again.                                           %";
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   end; 
+
+   symbolic procedure write_start_process1(); 
+   begin; 
+   write " %  If the model is already built,  you can go directly to chose             %"; 
+   write " %  Physical process by perform:                                             %"; 
+   write " %  process_chose(aa);                                                       %"; 
+   write " %  Where aa refer to the file in which the process definition information   %";  
+   write " %  is stored. The example of it could be found in file:                     %"; 
+   write " %  ",process_def_example; 
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   end; 
+
+   symbolic procedure write_model_information();   
+   begin; 
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%---FDC---%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   write " Now, You are working on the ",model_name," in the directory, ",
+           model_home;
+   end; 
+
+   symbolic procedure write_process_information();   
+   begin; 
+   write "  which is inputed by ",model_author," on ",model_time,". ";
+   write "  You choose the ",process_name," ";
+   write "  in the directory ",process_home,", ";
+   write "  which is inputed by ",process_author," on ",process_time,". ";
+   write "  So you can start to generate all the Feynman Diagram for ";
+   write "  the process by  diagram_generator(n) ";
+   write "  where n means within n-th perturbative order you want to find the leading"; 
+   write "  diagrams of this process. ";
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   end; 
+
+   symbolic operator process_chose;
+   symbolic procedure process_chose(aa);  
+   begin; 
+   algebraic(load compact)$  
+   sfwinput('cg)$  
+   sfwinput('diagram_generator)$  
+   swinput('trace_file);
+   swinput('option_s)$ 
+   swinput('structure_f);
+   winput(aa)$   
+   for each x in process_in_and_out_file_list do 
+       if process_home then set(x,dressm(process_home,eval(x)));  
+   if physical_model neq 1 then model_chose1(dressm(model_home,"model.def")) 
+   else write_model_information();  
+   winput(physical_parameters_gen); 
+   winput(particle_table_gen)$
+   winput(model_gen)$
+   winput(symbole_list_gen)$
+   winput(option)$
+   write_process_information();   
+   for each x in inputlist do 
+       if par1(car(x),input_list)=nil then input_list:=x.input_list;
+   phyinput:=for each x in phyinput collect if atom(x) then x else cadr(x);
+   end; 
+
+   symbolic operator gmprocess;
+   symbolic procedure gmprocess(aa);
+   begin;
+   swinput('mk_process)$
+   swinput('trace_file);
+   swinput('option_s)$
+   winput(aa)$
+   if physical_model neq 1 then model_chose1(dressma(model_home,"model.def"))
+   else write_model_information();
+   write "okokok";
+   winput(model_gen)$
+   winput(symbole_list_gen)$
+   winput(particle_table_gen)$
+   if supersymmetry then winput(new_parameter_list)
+   else winput(physical_parameters_gen);
+   winput(option)$
+   if qiw_event_generator='ok then <<
+      winput(p2flist_qiw);
+      swinput('gfdcpythia_qiw)$
+      fout:='"fort/";
+   >>;
+   in mprocess$
+   gen_mprocess(mprocess)$
+   end;
+
+   symbolic operator gmhtml;
+   symbolic procedure gmhtml(aa);
+   begin;
+   swinput('mk_mhtml)$
+   swinput('mk_html)$
+   swinput('option_s)$
+   winput(aa)$
+   if physical_model neq 1 then model_chose1(dressm(model_home,"model.def"))
+   else write_model_information();
+   winput(model_gen)$
+   winput(symbole_list_gen)$
+   winput(particle_table_gen)$
+   if supersymmetry then winput(new_parameter_list)
+   else winput(physical_parameters_gen);
+   in mprocess$
+   gen_mhtml(mprocess)$
+   end;
+
+   symbolic operator ghtml;
+   symbolic procedure ghtml(aa);
+   begin;
+   swinput('mk_mhtml)$
+   swinput('mk_html)$
+   swinput('option_s)$
+   debugw0_html()$
+   end;
+
+
+   symbolic procedure loop_one_by_one(n,m,a); 
+   begin;  
+   if n=1 then write "reduce > out2 << EOF" 
+   else write "reduce >> out2 << EOF"$ terpri(); 
+   write "in ""$fdc/src/fdc""$"$ terpri(); 
+   write "process_chose23(""process.def"");"$ terpri();  
+   write "diagram_chose:='",(n.m).a,"$"; terpri(); 
+   write "amplitude_evaluation();"$ terpri(); 
+   write "bye;"$ terpri(); 
+   write "EOF"$ terpri(); 
+   end; 
+ 
+   symbolic operator domuti_amp;
+   symbolic procedure domuti_amp();
+   begin scalar n,m,bb; 
+   winput(alldiagramlist);
+   out "doamp1b1"; 
+   bb:=pair(group,alldiagram);
+   if null(cdr(bb)) then bb:=pair(caar(bb),cdar(bb))
+   else symerr("not consider in domuti_amp",nil); 
+   m:=for each xx in bb sum if cadr(xx)=0 then 1 else length(xx)-2;
+   n:=0; 
+   for each xx in reverse(bb) do << 
+       if cadr(xx)=0 and (n:=n+1) then loop_one_by_one(n,m,xx) else 
+       for each x in cddr(xx) do 
+           if (n:=n+1) then loop_one_by_one(n,m,list(car(xx),cadr(xx),x));  
+   >>; 
+   shut "doamp1b1"; 
+   end; 
+
+   symbolic procedure get_fasl_type(); 
+   if fasl_type_list=nil then '"$fdc/fasl/" else  
+   begin scalar a,b;
+   system("gethostname"); 
+   in "$fdc/hostname";
+   for each x in fasl_type_list do if hostname memq cdr(x) then a:=car(x);
+   if a=nil then a:='fasl; 
+   b:=if a='fasl1 then  "$fdc/fasl1/" else 
+      if a='fasl2 then  "$fdc/fasl2/" else 
+      if a='fasl_32 then  "$fdc/fasl_64/" else 
+      if a='fasl_64 then  "$fdc/fasl_64/" 
+      else "$fdc/fasl/"; 
+   return b; 
+   end; 
+
+   symbolic procedure inconsistent_stop(n); 
+   if n=1 or n=0 then << 
+      if special_case_option1 then symerr("special_case_option1 can not be used at amp_method=1",nil);
+   >> else 
+   if n=2 then << 
+      if special_case_option then symerr("special_case_option can not be used at amp_method=2",nil);
+   >> else 
+   if n=3 then << 
+      if special_case_option1 then symerr("special_case_option1 can not be used at amp_method=3",nil);
+   >> else 
+   if n=amp then << 
+   >> else <<
+   >>; 
+
+   symbolic procedure start_FDC();
+   begin;  
+   in "$fdc/home.name";
+   in "$fdc/src/file.def";
+   if reduce_version neq 'csl then 
+   symbolic(loaddirectories!*:=get_fasl_type().loaddirectories!*);
+   load lib1;
+   %in "$fdc/src/lib1";
+   model_def_example:=dressm(fdc_home,"example/model.def");
+   process_def_example:=dressm(fdc_home,"example/process.def");
+   write " %%%%%%%%%%%%%%%%%%%%%%%%%%%%---FDC---%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%";
+   write " %  Now, you have just load the FDC package for Feynman Diagram Calculation  %";
+   write " %  The First step, you should choose a Physical model by perform:           %"; 
+   write " %  model_chose(aa);                                                         %"; 
+   write " %  Where aa refer to the file in which the model definition information is  %";  
+   write " %  stored. The example of it could be found in file:                        %"; 
+   write " %  ",model_def_example;  
+   write_start_process1(); 
+   end; 
+  
+   symbolic(start_FDC());
+
+   end$ 
+
+
