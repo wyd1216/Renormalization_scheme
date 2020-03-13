@@ -1,0 +1,591 @@
+symbolic(fluid'(wyd_renormalization_model gauge_symmetric_scheme onsh_list ms_list rloop
+                countertermlist1 countertermlist2 r_ksi_value ));  
+
+
+symbolic procedure wyd_renorm_latex_print(s);
+begin;
+on fort;
+wyd_model_descrip();
+wyd_renormalization_introduce();
+wyd_renormalize_selfenergy();
+wyd_renormalization_conditions();
+gb_ltex_rfs('section);
+wyd_renormalization_constants();
+all_counter_term_print(s);
+end;
+
+symbolic procedure wyd_renormalization_constants();
+begin scalar a,b,c; 
+write "\section{Renormalization constants}";wspace();   
+write "\subsection{Value of renormalization constants}";wspace();
+c:=length(countertermlist1);
+write "There are ",c," renormalization constants in this section"; wspace(); 
+for each x in countertermlist1 do <<
+    a:=car(x);
+    b:=cdr(x);
+    b:=reval(sublis(countertermlist2,b));
+    lleq_print(a,b);
+>>;wspace();   
+write "\subsection{Value of some parameters}";wspace();   
+c:=length(w6p_list);
+write "There are ",c," parameters in this section"; wspace(); 
+for each x in w6p_list do lleq_print(cadr(x),car(x)); wspace();
+if gauge_symmetric_scheme=1 then <<
+      write "\subsection{Residues of renormaized propagator that not equal to 1}";wspace();
+      write "Following are residues of renomalized ";wspace();
+      write "propagator which are not equal to 1.";wspace();
+      for each x in propa_residue_list do lleq_print(caaaar(x),cadr(x));
+>>;      
+end; 
+
+%----------------------------------------------------------------------
+%This part give some description of the model.
+%----------------------------------------------------------------------
+symbolic procedure wyd_model_descrip();
+begin scalar a,b,c,d;
+write "\section{Renormalization of the ",wyd_renormalization_model," }"; wspace();
+write "For every field and coupling constant,we can choose $\overline{MS}$ or on-shell renormalization,";wspace();
+write "It's depend on the model input.for this model,we renormalize the fields and coupling constant ";
+if not(null(onsh_list)) then <<
+      for each x in onsh_list do <<
+          write "$";
+          write_exp(0,x);
+          write "$";
+          if x=car(reverse(onsh_list)) then nil else write ",";
+      >>;
+      write " with on-shell scheme.";wspace();
+>>;
+if not(null(ms_list)) then <<
+      for each x in ms_list do <<
+          write "$";
+          write_exp(0,x);
+          write "$";
+          if x=car(reverse(ms_list)) then nil else write ",";
+      >>;
+      write " with $\overline{MS}$ scheme.";wspace();
+>>;
+wspace();
+if wyd_renormalization_model='qcd then c:=nil else 
+c:=reval(symbolic(algebraic(expriment_easy_list)));
+b:=for each x in rloop collect car(x);
+write "The coupling constant is $";write_exp(0,car(b));write "$.";wspace();
+write "Where ";
+for each x in coupling_comment do <<
+      write car(x)," is coupling constant of ",cadr(x),",";
+      wspace();
+>>;
+if wyd_renormalization_model='electroweak then 
+for each x in b do <<
+      a:=nth(cadr(c),4);
+      d:=par1(x,paramlist);
+      write "We will replace the coupling constant $";write_exp(0,x);
+      write "$ by $";write_exp(0,a);
+      write "$,";wspace();
+      write "Where $";write_exp(0,x);
+      write "=";write_exp(0,d);
+      write "$.";wspace();
+      write "And $";write_exp(0,a);
+      write "$ is the electric charge,";wspace();
+      write "defined by that the it is coupling constant of the vertex $";  
+      write_exp(0,'p);write ",";write_exp(0,'e);write ",";write_exp(0,'e);write "$.";wspace();
+>>;
+wspace();
+write "The gauge fixing parameters to choose are following";wspace();
+for each x in r_ksi_value do lleq_print(car(x),cdr(x));wspace();
+if wyd_renormalization_model='electroweak then wyd_model_descrip1();
+end;
+
+symbolic procedure wyd_model_descrip1();
+begin;
+wspace();
+write "The gauge boson are defined by";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "\left(";wspace();
+write "\begin{array}{ccc}";wspace();
+write "    Z_{\mu} \\";wspace(); 
+write "    A_{\mu} \\";wspace();
+write "  \end{array}";wspace();
+write "\right)      & =";wspace();
+write "\left(   ";wspace();        
+write "  \begin{array}{ccc} "; wspace(); 
+write "    c_W & -s_W \\";wspace();
+write "    s_W & c_W\\"; wspace();
+write "  \end{array}";wspace();
+write "\right)";wspace();   
+write "\left( ";wspace();          
+write "  \begin{array}{ccc}";wspace();
+write "    W^3_\mu \\";wspace();  
+write "    B_\mu \\";wspace(); 
+write "  \end{array}";wspace();
+write "\right) \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "Where $c_W=cos\theta_W$,$s_W=sin\theta_W$,";wspace();
+write "$\theta_W$ is the weinberg angle,sitisfy the condition";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "&c_W=\frac{m_W}{m_Z} \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+%------------------------------------------------------------------
+%-This part is the introduction of the renormalization constants---
+%------------------------------------------------------------------
+symbolic procedure wyd_renormalization_introduce();
+begin scalar a,b,c;
+write "\subsection{Introcduction of the renormalization constants}";wspace();
+write "Here,we use the index 0 to denote the bare fields and parameters.";wspace();
+write "Notice that for convenience we would not write the index 0 for bare quantities";wspace();
+write "when we don't invole the renormalization,but reader should understand it.";wspace();
+a:="renormalization constants";
+if wyd_renormalization_model='electroweak then <<
+          if gauge_symmetric_scheme=1 then <<
+              write "Following is the ",a," of gague-symmetric on-shell scheme.";
+              wyd_electroweak_introduce();
+              >> else  <<  
+              write "Following is the ",a," of the gauge-asymmetric on-shell scheme.";
+              wyd_electroweak_introduce();
+              >>;
+>> else if wyd_renormalization_model='qcd then wyd_qcd_introduce();
+
+end;
+
+symbolic procedure wyd_electroweak_introduce();
+begin;
+wyd_gauge_scheme_common_introduce();
+wyd_onshell_physical();
+%write "Following are the renormalizatlion conditions for gauge-asymmetric scheme.";wspace();
+%wyd_gauge_asymmetric_scheme2();
+end;
+
+symbolic procedure wyd_qcd_introduce();
+begin;
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "\psi_{i0}&=(1+\delta Z_{\psi_i}^{1/2})\psi \\";wspace();
+write "g_{\mu 0}^a&=(1+\delta Z_g^{1/2})g_\mu^a \\";wspace();
+write "\chi^a_0&=(1+\delta Z_\chi^{1/2})\chi^a \\";wspace();
+write "{g_g}_0&=(1+\delta Z_{g_3})g_g\\";wspace();
+write "{m_i}_0&=m_i+\delta m_i\\";wspace();
+write "{\xi_g}_0&=(1+\delta Z_g)\xi_g \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+symbolic procedure wyd_gauge_scheme_common_introduce();
+begin;
+if gauge_symmetric_scheme=0 then 
+      write "The renormalization constants in gauge-asymmetric scheme is introduced after SSB" else
+      write "The renormalization constants in gauge-symmetric scheme is introduced before SSB";
+wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+if gauge_symmetric_scheme=1 then wyd_gauge_symmetric_introduce1() else 
+if gauge_symmetric_scheme=0 then wyd_gauge_asymmetric_introduce1();
+write "\psi_{i0}&=(1+P_L \delta Z_{iL}^{1/2}+P_R \delta Z_{iR}^{1/2})\psi_i,\\";wspace();
+write "P_L&=\frac{1-\gamma_5}{2},P_R=\frac{1+\gamma_5}{2} \\";wspace();
+write "g_0&= (1+\delta g)g \\";wspace();
+write "g_0^{\prime}&=(1+\delta g^{\prime})g^{\prime} \\";wspace();
+write "v_0&=(1+\delta Z_v)v \\";wspace();
+write "\mu_0^2&=\mu^2 +\delta \mu^2 \\";wspace();
+write "\lambda_0 &=(1+\delta Z_\lambda)\lambda \\";wspace();
+write "{g_f}_0&=(1+\delta g_f)g_f \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+symbolic procedure wyd_gauge_asymmetric_introduce1();
+begin;
+write "W_{\mu_0 }^\pm &= (1+\delta Z_W^{1/2})W_\mu^\pm \\";wspace();  
+write "\left(";wspace();
+write "\begin{array}{ccc}";wspace();
+write "    Z_{\mu_0} \\";wspace(); 
+write "    A_{\mu_0} \\";wspace();
+write "  \end{array}";wspace();
+write "\right)      & =";wspace();
+write "\left(   ";wspace();        
+write "  \begin{array}{ccc} "; wspace(); 
+write "    1+\delta Z_{ZZ}^{1/2} & \delta Z_{ZA}^{1/2} \\";wspace();
+write "    \delta Z_{AZ}^{1/2} & 1+\delta Z_{AA}^{1/2} \\"; wspace();
+write "  \end{array}";wspace();
+write "\right)";wspace();   
+write "\left( ";wspace();          
+write "  \begin{array}{ccc}";wspace();
+write "    Z_\mu \\";wspace();  
+write "    A_\mu \\";wspace(); 
+write "  \end{array}";wspace();
+write "\right) \\";wspace();
+write "H_0&= (1+\delta Z _H^{1/2})H \\";wspace();
+write "{(\phi^\pm)}_0&=(1+\delta Z_{{\phi}^\pm}^{1/2})\phi^\pm \\";wspace();
+write "{(\phi^0)}_0&=(1+\delta Z_{{\phi}^0}^{1/2})\phi^0 \\";wspace(); 
+write "{(\xi_V)}_0&=(1+\delta Z_{\xi_V})\xi_V \,,";wspace();
+write "V=W,Z,A \\";
+end;
+
+symbolic procedure wyd_gauge_symmetric_introduce1();
+begin;
+write "W_{\mu_0 }^a &= (1+\delta Z_W^{1/2})W_\mu^a \\";wspace();
+write "B_{\mu0}&=(1+\delta Z_B^{1/2})B_\mu \\";wspace();
+write "\Phi_0&=(1+\delta Z_H^{1/2})\Phi \\";wspace();
+write "{(\xi_V)}_0&=(1+\delta Z_{\xi_V})\xi_V ";wspace();
+write "V=W,B \\";
+end;
+
+symbolic procedure wyd_onshell_physical();
+begin;
+write "We choose the five physical parameters ${m_w},{m_z},{m_h},{m_f},{e}$";wspace();
+write " and the tadpole ${T_h}$,where $T_h=\upsilon(\mu^2-\lambda \upsilon^2)$.";wspace();
+write "to replace the six original parameters $g,g^\prime,g_f,\mu^2,\lambda,\upsilon$";wspace();
+write "Where $m_f$ represent the mass of fermion,$\upsilon$ is the vacuum expection value of higgs,";wspace();
+write "$g_f$ is the yukawa coupling constants,$\mu^2$ and $\lambda$ is the coefficients of lagrangian of higgs.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "e_0&=(1+\delta e)e \\";wspace();
+write "{M_W}_0&=M_W+\delta M_W \\";wspace();
+write "{M_Z}_0&=M_Z+\delta M_Z \\";wspace();
+write "{M_H}_0&=M_H+\delta M_H \\";wspace();
+write "{M_f}_0&=M_f+\delta M_f \\";wspace();
+write "T_0&=T+\delta T";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+%-------------------------------------------------------------------------
+%This part give the expression of renormalized self energy,including the
+%counter term.Also a vertex correction with counter term to decide 
+%the renormalization constants of coupling constant.
+%-------------------------------------------------------------------------
+symbolic procedure wyd_renormalize_selfenergy();
+begin;
+write "\subsection{Renormalized selfenergy and vertex}";wspace();
+write "We write down the renormalized selfenergy.";
+write "The symbol which has a hat reprsent renormalized selfenergy which include the counterterms,";wspace();
+write "the symbol with no hat just represent the one-loop corrections.";wspace();
+if wyd_renormalization_model='qcd then wyd_qcd_selfenergy() 
+else wyd_electroweak_selfenergy();
+end;
+
+symbolic procedure wyd_qcd_selfenergy();
+begin;
+wspace();
+write "Fermion selfenergy:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "i\hat{\Sigma}(p)&=i\Sigma(p)+i[\delta Z_{\psi}(p\!\!\!\slash-m)-\delta m] \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Gluon porlarization:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "i\hat{\Pi}_{\mu \nu}^g(k^2)&=i(g_{\mu \nu}-\frac{k_\mu k_\nu}{k^2})\hat{\Pi}^g(k^2)\\";wspace();
+write "\hat{\Pi}^g(k^2)&=\Pi^g(k^2)+\delta Z_gk^2 \\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Ghost selfenergy:";
+write "\begin{equation}";wspace();
+write "\begin{split}";wspace();
+write "\hat{\Pi}_\chi(k^2)&={\Pi}_\chi(k^2)+\delta Z_\chi k^2\\";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Renormalized vertex of gluon,quark and antiquark:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "i\hat{\Gamma}^{gq\bar{q}}_{\mu aij}&=ig_s T^a_{ij}\gamma_\mu+i\Gamma^{gq\bar{q}}_{\mu aij}+ig_s T^a_{ij} \delta \Gamma^{gq\bar{q}}_\mu\\";
+write "\delta \Gamma^{g q \bar{q}}_\mu &=\gamma_\mu(\delta g_s+\delta \psi +\frac{1}{2}\delta g) ";wspace();
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+symbolic procedure wyd_electroweak_selfenergy();
+begin;
+wspace();
+
+write "Gauge boson vacuum porlarization:";wspace();
+wspace();
+write "First we decompose the vacuum porlarization $i\hat{\Pi}_{\mu \nu}^{ij}(k^2)$  as follows,";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write " &i\hat{\Pi}_{\mu \nu}^{ij}(k^2)=ig_{\mu \nu}\hat{\Pi}^{ij}(k^2)+i\frac{k_\mu k_\nu}{k^2}\hat{\Pi}^{ijL}(k^2)\\";
+write "&ij= WW\,,ZZ\,,AA\,,AZ\,,ZA\,.\\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "Where the transeverse and longitudinal part of porlarization of gauge boson is also exprssed as following";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Pi}^{ii}(k^2)=\Pi^{ii}(k^2)+[2M_i\delta M_i -\delta Z_i(k^2-M_i^2)]\\";
+write "&\hat{\Pi}^{iiL}(k^2)=\Pi^{iiL}(k^2)+k^2[(1-\frac{1}{\xi_i})\delta Z_i +\frac{\delta Z_{\xi_i}}{\xi_i}]\\";
+write "&ii=WW\,,AA\,,ZZ \qquad \delta Z_i=\delta Z_W,\delta Z_{AA},\delta Z_{ZZ}\\";
+write "&\hat{\Pi}^{AZ}(k^2)=\hat{\Pi}^{ZA}(k^2)=\Pi^{AZ}(k^2)-\frac{1}{2}\delta Z_{AZ}(k^2-M_A^2)-\frac{1}{2}\delta Z_{ZA}(k^2-M_Z^2) \\";
+write "\end{split}";wspace();
+write "\end{equation}";
+wspace();
+
+write "Fermion selfenergy:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "i\hat{\Sigma}(p)&=i\Sigma(p)+i[\frac{1}{2}(P_R \delta Z_{L}+P_L\delta Z_{R})(p\!\!\!\slash -m)+\frac{1}{2}(p\!\!\!\slash - m)(P_L\delta Z_{L}+P_R\delta Z_{R})-\delta m] \\";
+write "\Sigma(p)&=p\!\!\!\slash\Sigma_V(p^2)+p\!\!\!\slash\gamma_5\Sigma_A(p^2)+m\Sigma_S(p^2) \\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+
+write "Higgs selfenergy:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Sigma}_H(k^2)={\Sigma}_H(k^2)+\delta Z_H(k^2-M_H^2)-2M_H \delta M_H\\";
+write "&\hat{\Sigma}_{\phi^\pm}(k^2)={\Sigma}_{\phi^\pm}(k^2)+\delta Z_{\phi^\pm}(k^2-\xi_W M_W^2)-2M_{\phi^\pm} \delta M_{\phi^\pm}\\";
+write "&\hat{\Sigma}_{\phi^0}(k^2)={\Sigma}_{\phi^0}(k^2)+\delta Z_{\phi^0}(k^2-\xi_Z M_Z^2)-2M_{\phi^0} \delta M_{\phi^0} \\";
+write "&M_{\phi^\pm}^2=\xi_WM_Z^2 \\";
+write "&M_{\phi^0}^2=\xi_ZM_Z^2";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+
+write "Renormalized elemagnetic vertex:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "i\hat{\Gamma}^{\gamma e e}_\mu&=ie\gamma_\mu+i\Gamma^{\gamma e e}_\mu+ie\delta \Gamma^{\gamma e e}_\mu \\";
+write "\delta \Gamma^{\gamma e e}_\mu&=\gamma_\mu(\delta e +\frac{1}{2}(\delta Z^e_R +\delta Z^e_L)+\frac{1}{2}\delta Z_{AA}-\frac{1}{8c_Ws_W}(4s_W^2-1)\delta Z{AA}) \\";
+write "&+\gamma_\mu \gamma_5(\frac{1}{2}(\delta Z^e_R -\delta Z^e_L)-\frac{1}{8c_Ws_W} \delta Z_{ZA}) \\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "$i\Gamma^{\gamma e e}_\mu$ is one-loop correction of this vertex.";wspace();
+end;
+
+%-------------------------------------------------------------------------
+%Renomalization conditions.
+%-------------------------------------------------------------------------
+symbolic procedure wyd_renormalization_conditions();
+begin;
+write "\subsection{Renormalization conditions}";wspace();
+write "For $\overline{MS}$ renormalization scheme,it's is the simplest way to just ";
+write "substract the divergent parts(the terms proportional to $\frac{1}{\varepsilon}-\gamma+\log{4\pi}$)";
+write " of one-loop integrals,where $\gamma$ is euler constants,and $\varepsilon$ is that in dimentional ";
+write "regurarization we set the dimention $D=4-2\varepsilon$.";wspace();
+wspace();
+write "For on-shell renormalization scheme,we write down as following.";
+write "for simplify,we write the derivative of selfenergy to square of momenta $p^2$ with ";
+write "symbol prime,and set $p^2=m^2$ for the corresponding fields.";
+write "for example $\hat{\Pi}^\prime(m^2)=\frac{d\hat{\Pi}(k^2)}{dk^2}|_{k^2=m^2}$.";
+if wyd_renormalization_model='qcd then wyd_qcd_renormalization_conditions() else
+if gauge_symmetric_scheme=0 then wyd_gauge_asymmetric_conditions()
+else wyd_gauge_symmetric_conditions();
+end;
+
+symbolic procedure wyd_qcd_renormalization_conditions();
+begin;
+wspace();
+write "Here is the on-shell renormalization conditions for QCD.";wspace();
+wspace();
+write "Fermion.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Sigma}(p\!\!\!\slash=m)&=0\\";
+write "\frac{d}{dp\!\!\!\slash}\hat{\Sigma}(p)|_{p\!\!\!\slash=m}&=0\\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Gluon.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Pi}_G^\prime(0)&=0 \\";
+%write "\hat{\Pi}_G^\prime(0)&=\frac{d\hat{\Pi}^G(k^2)}{dk^2}|_{k^2=0}";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Ghost.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Pi^\prime}_\chi (0)&=0\\";
+write "\end{split}";
+write "\end{equation}";wspace();
+wspace();
+write "Coupling constant.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Gamma}^{G q \bar{q}}_{\mu aij}(k^2=0,{p\!\!\!\slash}_{q}&=m_q,{p\!\!\!\slash}_{\bar{q}}=m_q)=g_s T^a_{ij} \gamma_\mu \\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+symbolic procedure wyd_gauge_asymmetric_conditions();
+begin;
+wspace();
+write "The gauge-asymmetric on-shell renormalization conditions for electroweak";wspace();
+wspace();
+write "Tadpole";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\delta T +T^{loop}=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Fermion.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Sigma}(p\!\!\!\slash=m)=0 \\";
+write "&\lim\limits_{ p\!\!\!\slash \to m} \frac{1}{p\!\!\!\slash -m}{\hat{\Sigma}}(p)\mu(p)=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "$\mu (k)$ is the wave function of the particle.";wspace();
+wspace();
+write "Gauge boson.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Pi}^{ii}(M_i^2)=0\,,\qquad i=W,A,Z\\";
+write "&\hat{\Pi}^{ii\prime}(M_i^2)=0\,,\qquad i=W,A,Z\\";
+write "&\xi_i\hat{\Pi}^{iiL}(M_i^2)+M_i^2(1-\xi_i)=0,\qquad i=W,A,Z \\";
+write "&\hat{\Pi}^{AZ}(M_A^2)=\hat{\Pi}^{ZA}(M_A^2)=\hat{\Pi}^{AZ}(M_Z^2)=\hat{\Pi}^{ZA}(M_Z^2)=0 ";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Higgs";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Sigma}_H(M_H^2)=0\\";
+write "&\hat{\Sigma^\prime}_H(M_H^2)=0\\";
+write "&\hat{\Sigma^\prime}_{\phi^\pm}(M_{\phi^\pm}^2)=0\\";
+write "&\hat{\Sigma^\prime}_{\phi^0}(M_{\phi^0}^2)=0\,.\\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Coupling constant";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Gamma}^{\gamma e e}_\mu (k^2=0,{p\!\!\!\slash}_{e^-}=m_e,{p\!\!\!\slash}_{e^+}=m_e)=e\gamma \\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+
+
+symbolic procedure wyd_gauge_symmetric_conditions();
+begin;
+wspace();
+write "The gauge-symmetric on-shell renormalization conditions for electroweak";wspace();
+wspace();
+write "In this scheme,where are some residues of propagator are not equal to 1,and ";wspace();
+write "we would list them later.";wspace();
+wspace();
+write "Tadpole:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\delta T +T^{loop}&=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+write "Fermion:";wspace();
+wspace();
+write "In gauge-symmetric scheme,the renormalization constants for the SU(2) are same,";
+write "which keep the SU(2) gauge symmetry after renormalization.Thus,there is only one field";
+write " could keep the condition that the residue equal to 1.";
+write "We choose $I_3=-\frac{1}{2}$ particles' renormalization conditions as following,";
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Sigma^i}(p\!\!\!\slash=m_i)&=0 \\";
+write "\lim\limits_{ p\!\!\!\slash \to m_i} \frac{1}{p\!\!\!\slash -m_i}{\hat{\Sigma}^{i}}(p)\mu_-(p)&=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "$\mu (k)$ is the wave function of the particle.";wspace();
+wspace();
+write "For $I_3=\frac{1}{2}$ SU(2) state";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Sigma}(p\!\!\!\slash=m)=0\\";
+write "&\delta Z_{L+}= \delta Z_{L-} \\";
+write "&C_{\gamma_5}=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "Here,we write $Z_{L+}$ and $Z_{L-}$ to reprsent the renormalization constants of";
+write "SU(2) doublet fermion that $I_3=\frac{1}{2}$ and $-\frac{1}{2}$.";
+write "In the third conditions $C_{\gamma_5}$ reprsent the term of $\gamma_5$ in fermion";
+write " renomalized selfenergy,i.e.,$i\hat{\Sigma}(p)$.Though we lost the good property that ";
+write "residue equal to 1 for $I_3=\frac{1}{2}$ particles,we still keep left ";
+write "and right hand parts of the propagator have the same residues by this condition.";wspace();
+wspace();
+
+write "Gauge boson:";wspace();
+wspace();
+write "As above,we introduce the renormalization constants for unmixed gauge boson before the SSB,";wspace();
+write "we now also write the renormalization constants for gauge boson of mass eigenstate after SSB.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\left(";
+write "\begin{array}{ccc}";
+write "    Z_{\mu_0} \\";
+write "    A_{\mu_0} \\";
+write "  \end{array}";
+write "\right)      & =";
+write "\left(   ";
+write "  \begin{array}{ccc} "; 
+write "    1+\delta Z_{ZZ}^{1/2} & \delta Z_{ZA}^{1/2} \\";
+write "    \delta Z_{AZ}^{1/2} & 1+\delta Z_{AA}^{1/2} \\";
+write "  \end{array}";
+write "\right)";
+write "\left( ";
+write "  \begin{array}{ccc}";
+write "    Z_\mu \\";
+write "    A_\mu \\";
+write "  \end{array}";
+write "\right) \\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+
+write "Then we can get the relations between the two group renormalization constants.";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\delta Z_{ZZ}=cos^2\theta\delta Z_W+sin^2\theta\delta Z_B\\";
+write "&\delta Z_{AA}=sin^2\theta\delta Z_W+cos^2\theta\delta Z_B\\";
+write "&\delta Z_{ZA}=sin\theta cos\theta[(\delta Z_W-\delta Z_B)+2(\frac{\delta cos\theta}{cos\theta}-\frac{\delta sin\theta}{sin\theta})]\\";
+write "&\delta Z_{AZ}=sin\theta cos\theta[(\delta Z_W-\delta Z_B)-2(\frac{\delta cos\theta}{cos\theta}-\frac{\delta sin\theta}{sin\theta})]";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+write "There actually two renormalization constants $\delta Z_B,\delta Z_W$ introduced to represent ";
+write "the four renomalizatin constants $\delta Z_{ZZ},\delta Z_{AA},\delta Z_{ZA}$ and $\delta Z_{AZ}$,";
+write "Thus we will choose less conditions to set their residue equal to 1,just like fermion.";
+write "The conditions are";
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Pi}^{ii}(M_i^2)&=0\,,\qquad i=W,A,Z\\";
+write "\hat{\Pi}^{AA\prime}(0)&=0\\";
+write "\hat{\Pi}^{AZ}(0)&=\hat{\Pi}^{ZA}(0)=0";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+
+write "Higgs:";wspace();
+wspace();
+write "The same situation as fermion and gauge boson in Higgs,we don't say in detail again.";
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "&\hat{\Sigma}_H(M_H^2)=0\\";
+write "&\hat{\Sigma^\prime}_H(M_H^2)=0\\";
+write "&\delta Z_{\phi^\pm}=\delta Z_{\phi^0}=\delta Z_H ";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+wspace();
+
+write "The charge renormalization condition:";wspace();
+write "\begin{equation}";wspace();
+write "\begin{split}";
+write "\hat{\Gamma}^{\gamma e e}_\mu (k^2=0,{p\!\!\!\slash}_{e^-}&=m_e,{p\!\!\!\slash}_{e^+}=m_e)=e\gamma \,,\\";
+write "i\hat{\Gamma}^{\gamma e e}_\mu&=ie\gamma_\mu+i\Gamma^{\gamma e e}_\mu+ie\delta \Gamma^{\gamma e e}_\mu \,,\\";
+write "\delta \Gamma^{\gamma e e}_\mu&=\gamma_\mu(\delta e +\frac{1}{2}(\delta Z^e_R +\delta Z^e_L)+\frac{1}{2}\delta Z_{AA}-\frac{1}{8c_Ws_W}(4s_W^2-1)\delta Z{AA}) \\";
+write "&+\gamma_\mu \gamma_5(\frac{1}{2}(\delta Z^e_R -\delta Z^e_L)-\frac{1}{8c_Ws_W} \delta Z_{ZA}) \,.\\";
+write "\end{split}";wspace();
+write "\end{equation}";wspace();
+end;
+
+
+end;
+
+
+
+
+
+
+
+

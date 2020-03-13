@@ -1,0 +1,3330 @@
+%--new--new--
+symbolic(fluid'(hvvvl feynmanrulelist  pchalist bosonmix splist hsuml colorlist coupling_comment  
+                give_up_compact  any_type_list bound_pa_j_list charge_op_sign_list charge_op_sign_list1  
+                bound_pv_list bound_state_component_list fermionprog bosonprog propagatorl splist  
+                palist pflist pb1list pb0list pglist mdefl construles ctadpole_list phyinput htionl 
+                cterm_vertices_list hnsuml hparameter pnametype hway hparaway hpindex singlist  
+                hconstr hconstr1 vpdlist funclist fermionprog ss_dmas2_list new_const_list  bosommix 
+                spflist singlist feynmanrulelist_new ctp_list rc_list htionlist absrules midhtionlist 
+                rangetable hpsumrange gaugefields matterinput phymass fermion_generation bosonmix matrixlist
+                lx lxcc rloop rform vertex2_list vertex2_list1 couplingord patable1 re_scheme_cons 
+                reconslist repropalist reconsfactor pglistw pglist fermioncna ms_list
+                onsh_list wydpl wydpr expriment_easy_list lr_state  wydrenorma_constant_list
+                wydrenorma_list  wydgauge_boson wydneutrino  wydelectric_charge tadpole_renorma 
+                rloop1 propa_residue_list cclist gauge_fix_term_list wydgauge_boson_fixing
+                wydgauge_boson_fixing1 r_ksi_value r_ksip_value latex_s_list platexname unphy_pa_list 
+                wydtest countertermlist hhlist paramlist wydzero_feynmanrule chargelist 
+                phyinput1 gauge_symmetric_scheme renorma_constant_addlist 
+                wyd1 wyd2 wyd3 wyd4 wyd5 wyd6 wyd7 wyd8 wyd11 wyd10
+                ctp_list wydtrigono_re
+                wydtrigonometric_equation loop_order loop_one
+                wyd_renormalization_model construles  nonlinear_variables inputlist maslist2 
+                kyoto_list kyoto_scheme_list angle_value kyoto_bare_variables kyoto_parameter_renormalize
+                subs_of_mix_mat kyoto_ksi_list kyoto_ksi_renorma wyd1b wyd14 qcd_switch 
+                renorma_constant_multilist gcoup_list
+                landau_european tadpole_of_higgs_mass dagfl fermion_for_alpha_list 
+                wydrenorma_constant_list_zero wydrenorma_constant_list_higher
+                tadpole_redefine wydrenorma_fields_list fermion_field_back ));
+%-----------------the global variable used just in a function--------------------
+%----lx,
+
+%symbolic;
+vector r1,r2,v,va,vb,vc;
+symbolic(flag('(l),'nospur));
+share absrules,wyd7,wydtrigonometric_equation,loop_order,gauge_symmetric_scheme;
+
+%------------------------------------------------------------------------
+%------this procedure is the main procedure------------------------------
+%
+%-------------------------------------------------------------------------
+symbolic procedure do_all_renormalization(); 
+begin scalar ff,ff1,test; 
+model_ban_condition();
+wydglobal_input();
+ff:=renorma_list();
+fermion_left_right_judge();
+renorma_constant_addlist:=renorma_constant_add(ff);
+tadpole_of_higgs_mass:=higgs_mass_tad();
+
+
+ff1:=counterterm_generate();
+test:=hhlist;
+%symerr("test here",nil);
+return if not(loop_order=1) then list(nil,nil,nil) else ff.ff1;
+end;
+
+
+symbolic procedure do_all_renormalization1(a,b);
+begin scalar c,d;
+c:=append(car(a),car(b));
+d:=append(cadr(a),cadr(b));
+return list(c,d);
+end;
+
+%(======================================Baned model situation================
+symbolic procedure model_ban_condition();
+begin scalar a,a1,a2;
+a:=for each x in cdr(gauge_fix_term_list) collect if atom(cadr(x)) then list(cadr(x),caddr(x))
+   else list(caadr(x),caddr(x));
+a:=for each x in a collect if member(car(x),kyoto_scheme_list) then list(car(x),cadr(x),sublis(r_ksi_value,cadr(x)),1) 
+   else list(car(x),cadr(x),sublis(r_ksi_value,cadr(x)),0);
+for each x in a do if freeof(bosonmix,car(x)) then a1:=x.a1 else a2:=x.a2;
+model_ban_condition1(a1,a2);
+end;
+
+%---------------------------------------------------------
+%--(kyoto scheme) and (gauge choice) incompatible ban. ---
+%---------------------------------------------------------
+symbolic procedure model_ban_condition1(a1,a2);
+begin scalar a;
+for each x in append(a1,a2) do <<
+    a:=find_mass(car(x));
+    if a=0 and nth(x,3)='infinit then 
+        symerr("Model ban:It's forbiden to choose unitary gauge for massless gauge boson",nil);
+    if nth(x,3)='infinit and nth(x,4)=1 then 
+        symerr("Model ban:Once you choose unitary gauge for this gauge boson,then you can't choose kyoto scheme for it.",nil);
+>>;
+a:=for each x in a2 collect nth(x,4);
+if null(a) then nil else <<
+    if all_element_equal(a) then nil else 
+        symerr("Model ban:It should be same for two mixed two gauge boson weather they are in kyoto_scheme_list",nil);
+>>;
+for each x in a2 do if nth(x,3)=0 and nth(x,4)=0 then 
+    symerr("Model ban:It's incompatible for mixed gauge boson use landau gauge and European scheme",nil);
+a:=for each x in append(a1,a2) collect if member(car(x),colorlist) then nil else nth(x,3);
+a:=delnull(a);
+if gauge_symmetric_scheme=1 and null(all_element_equal(sublis(r_ksi_value,a))) then 
+    symerr("Model ban:In gauge_symmetric scheme,it's should be same for gauge parameters of W,Z,A gauge boson.",nil);
+if gauge_symmetric_scheme=1 and length(kyoto_scheme_list)>1 then 
+    symerr("Model ban:In gauge_symetric scheme.,it's should be European scheme for W,Z,A gauge boson.",nil);
+end;
+%=================================================================================)
+%(=================================Module 1=====================================
+%This part is to produce some global variables which 
+%can be set at the beginning and used through all the
+%procedure.
+%=============================================================================
+symbolic procedure wydglobal_input();
+begin;
+load_package compact;
+for each x in palist do mkop x;
+midhtionlist:=htionlist;
+wydtrigonometric_equation:=algebraic({sin(~x)**2+cos(~x)**2=1});
+symbolic(matterinput:=cdr(reval(algebraic(matterinput))));
+wydpl:=reval(algebraic((1-g(l,a))/2));
+wydpr:=reval(algebraic((1+g(l,a))/2));
+if null(expriment_easy_list) then expriment_easy_list:=nil else
+symbolic(expriment_easy_list:=cdr(reval(algebraic(expriment_easy_list))));
+wydgauge_boson:=wydgauge_boson_list();
+gauge_fixing_limiting_conditions();
+wydelectric_charge:=electric_charge_list();
+rloop1:=expression_of_rloop();
+ksi_ksip_redefine();
+delunphy_ksi_untary();
+end;
+
+symbolic procedure ksi_ksip_redefine();
+begin scalar a,b,c;
+for each x in kyoto_scheme_list do if not(freeof(bosonmix,x)) then b:=x.b;
+for each x in bosonmix do for each y in cadr(x) do
+      for each z in y do if member(z,kyoto_scheme_list) then c:=append(c,y);
+c:=delrep(c);
+if common_list(b,c) then nil 
+      else symerr("If there exist mixing between two gauge boson,you should not get only one of them in kyoto_scheme_list",nil);
+for each x in cdr(gauge_fix_term_list) do if atom(nth(x,2)) and not(member(nth(x,2),kyoto_scheme_list)) then <<
+      if find_mass(cadr(x))=0 then a:=(nth(x,4).0).a
+      else a:=(nth(x,4).nth(x,3)).a;
+>>;
+for each x in cdr(gauge_fix_term_list) do if not(atom(nth(x,2))) then <<
+      if member(caadr(x),kyoto_scheme_list) then << 
+          if find_mass(caadr(x))=0 then a:=(nth(x,4).0).a
+          else a:=(nth(x,4).nth(x,3)).a;
+      >>;
+>>;
+a:=delrep(a);
+vertex2_list1:=sublis(a,vertex2_list1);
+cclist:=sublis(a,cclist);
+end;
+
+%-----------------------------------------------------------------------
+%In unitary gauge,we will not include the unphysical higgs and the     -
+%gauge fixing parameters would limit to infinit,which will lead to     -
+%the dispear of corresponding gauge fixing term.                       -
+%-----------------------------------------------------------------------
+symbolic procedure delunphy_ksi_untary();
+begin scalar a,b,c;
+for each x in r_ksi_value do if cdr(x)='infinit then a:=car(x).a;
+if a then <<
+    b:=for i:=1:length(a) collect nth(a,i).list('quotient,1,mkid('hh,i));
+    c:=for i:=1:length(a) collect nth(cdr(nth(b,i)),3).0;
+    vertex2_list1:=for each x in vertex2_list1 collect list(car(x),reval(sublis(b,cadr(x))));
+    vertex2_list1:=for each x in vertex2_list1 collect list(car(x),reval(sublis(c,cadr(x))));
+>>;
+end;
+%----------------------------------------------------------------------------------
+%In order to remove the mixing term of photo and Z-boson in renormalized lagrangin,
+%we make all the gauge fixing parameters have equal value(Do renormalization before 
+%SSB).
+%-----------------------------------------------------------------------------------
+symbolic procedure gauge_fixing_limiting_conditions();
+begin scalar a,b,c,d,f;
+b:=for each x in cdr(gauge_fix_term_list) collect if atom(cadr(x)) then cadr(x).nth(x,3) else caadr(x).nth(x,3);
+for each x in wydgauge_boson do <<
+      c:=nil;
+      c:=getml1(x,b);
+      if null(c) then for each y in cdr(pchalist) do 
+          if not(freeof(y,x)) then c:=getml1(cadr(y),b);
+      d:=c.d;
+>>;
+for each x in r_ksi_value do if member(car(x),d) then f:=x.f;
+if gauge_symmetric_scheme=1 then <<
+      a:=for each x in f collect cdr(x);
+      for each x in cdr(reverse(a)) do <<
+          if not(x=car(a)) then 
+             symerr("Please give in gauge fixing parameters equal value when you do renormalization before SSB",nil);
+      >>;
+>>;
+end;
+%-----------------------------------------------------------------------------
+%Output:A list that contain all the gauge boson and the 
+%varibles represent gauge boson which attend to the model.
+%------------------------------------------------------------------------------
+symbolic procedure wydgauge_boson_list();
+begin scalar b,c,d,f,ff;
+for each x in gaugefields do if member(car(x),rform) then <<
+      b:=x;
+      b:=nth(b,4);
+      for each y in cdr(pchalist) do if car(cdr(y))=b then 
+           c:=for each z in cdr(cdr(y)) collect car(z);
+      c:=delrep(c);
+      for each y in hpsumrange do <<
+        d:=nil;
+        for each z in c do if member(z,y) then d:=1;
+        if d then f:=car(y).f;
+      >>;
+      f:=append(c,f);
+      ff:=f.ff;
+>>;
+ff:=w_append_all_list(ff);
+ff:=delrep(ff);
+return ff;
+end;
+
+%--------------------------------------------------------------------------------
+%Input:A list whose element is also a list.
+%Output:A list which append all the element in input.
+%--------------------------------------------------------------------------------
+symbolic procedure w_append_all_list(a);
+if length(a)=1 then car(a) else w_append_all_list(append(car(a),cadr(a)).cddr(a));
+
+%--------------------------------------------------------------------------------
+%Input:A list whose element is also a list and the length of all the elements is same.
+%Output:A list whose nth element is the append of all the nth of element of input.
+%----------------------------------------------------------------------------------
+symbolic procedure w_append_all_element(a);
+if length(a)=1 then car(a) else 
+begin scalar b;
+b:=for i:=1:length(car(a)) collect append(nth(car(a),i),nth(cadr(a),i));
+return w_append_all_element(b.cddr(a));
+end;
+
+%--------------------------------------------------------------------------------
+%Output:A list which contain all the neutrino.
+%--------------------------------------------------------------------------------
+symbolic procedure wydneutrino_list();
+begin scalar a;
+for each x in lr_state do 
+    if length(x)=3 and nth(x,3)='l then a:=car(x).a;
+return a;
+end;
+
+%------------------------------------------------------------------------------
+%Output:A list same as "phymass" list while masses replaced by electric charge.
+%------------------------------------------------------------------------------
+symbolic procedure electric_charge_list();
+begin scalar b,c;
+for each x in cdr(pchalist) do <<
+    if freeof(fermion_generation,car(nth(x,3))) then << 
+          b:=cddr(x);
+          c:=append(b,c);
+    >> else << 
+    b:=electric_charge_list1(cddr(x));
+    c:=append(b,c);
+    >>;
+>>;
+c:=delrep(c);
+c:=common_combination(c);
+return c;
+end;
+
+symbolic procedure electric_charge_list1(a);
+begin scalar b,c,d;
+for each x in a do <<
+    for each y in fermion_generation do if car(y)=car(x) then b:=y;
+    c:=for each z in b collect list(z,cadr(x));
+    d:=append(c,d);
+>>;
+return d;
+end;   
+
+symbolic procedure common_combination(a);
+begin scalar b,c;
+b:=for each x in a collect car(x);
+b:=delrep(b);
+c:=for each x in b collect common_combination1(x,a);
+return c;
+end;
+
+symbolic procedure common_combination1(a,b);
+begin scalar c,d;
+for each x in b do if car(x)=a then d:=cadr(x).d;
+if length(d)=1 then c:=car(d) else c:=d;
+return list(a,c);
+end;
+
+%----------------------------------------
+%Giving the algebraic expression of rloop.
+%----------------------------------------
+symbolic procedure expression_of_rloop();
+begin scalar a;
+a:=rloop;
+a:=for each x in a collect list('expt,car(x),cdr(x));
+a:=reval('times.a);
+return a;
+end;
+%===================================Module 1 end=================================)
+
+%(============================kyoto scheme===================================
+%---------------------------------------------------------------------------------
+%- a is a list that contain  some vertex and corresponding feynman rule which    -
+%- is the function of gauge parameters.we renormalize these vertex and make the  -
+%- renormalized lagrangian equal to bare one,then from these equation we get the -
+%- renormalization constant of gauge parameters.                                 - 
+%---------------------------------------------------------------------------------
+symbolic procedure kyoto_scheme();
+begin scalar a,b,c,f1,f2,f3,ff;
+dagfl:=append(palist,dagfl);
+wyd1b:=kyoto_scheme1();
+a:=car(wydrenorma_list);
+a:='pd.a;
+for each x in kyoto_scheme_list do if member(x,a) then b:=x.b;
+kyoto_scheme_list:=b;
+b:=nil;
+for each x in cdr(gauge_fix_term_list) do 
+       if member(cadr(x),kyoto_scheme_list) then b:=cdr(x).b;
+%%%%%here we just delete the situation that only one gauge_fields(there is
+%%%%%no goldstone fields for qed and qcd).
+if length(b)=1 and length(wydgauge_boson)=1 then b:=nil;
+if b then <<
+  c:=b;
+  kyoto_bare_variables:=for each x in b collect nth(x,3);
+  kyoto_bare_variables:=delrep(kyoto_bare_variables);
+  b:=kyoto_scheme_auxiliary_fields(c);
+  for each x in b do a:=caadr(x).a;
+  a:=delrep(a);
+
+  kyoto_parameter_renormalize:=for each x in c collect 
+      if find_mass(car(x))=0 then nth(x,3).0 else nth(x,3).nth(x,2);
+  f2:=kyoto_bare_lagrangian(b,c);
+  kyoto_parameter_renormalize:=append(r_ksip_value,kyoto_parameter_renormalize);
+  kyoto_parameter_renormalize:=delrep(kyoto_parameter_renormalize);
+  f1:=reval(sublis(kyoto_parameter_renormalize,f2));
+  f2:=kyoto_renorma_lagrangian(f2,b);
+  f2:=reval(list('plus,f2,list('minus,f1)));
+ 
+  sep_fun_term(reval(f2),a,nil)$ 
+  for each x in kyoto_list do << 
+     c:=reval('plus.cdr(x)); 
+     ff:=c.ff;
+  >>;
+  kyoto_bare_variables:=delrep(kyoto_bare_variables);
+  kyoto_bare_variables:=append(kyoto_bare_variables,nonlinear_variables);
+  f3:=wsolve(ff,kyoto_bare_variables);
+
+  subs_of_mix_mat:=for each x in subs_of_mix_mat collect cdr(x).car(x);
+  f3:=for each x in cadr(f3) collect car(x).reval(sublis(subs_of_mix_mat,cdr(x)));  
+>>;
+return f3;
+end;
+
+symbolic procedure kyoto_scheme1();
+begin scalar a,b,c,d;
+a:=car(wyd1);
+a:=for each x in a collect if nth(x,2)=2 then 
+    append(list(nth(x,1),nth(x,2)),for each y in nth(x,3) collect list(car(y),cadadr(y)))
+    else append(list(nth(x,1),nth(x,2)),for each y in cddr(x) collect list(car(y),cadadr(y)));
+for each x in a do <<
+      b:=cddr(x);
+      c:=for each y in b collect if car(y)=car(x) then list(car(y),list('sqrt,cadr(y))) 
+          else y;
+      c:=append(list(car(x),cadr(x)),c);
+      d:=c.d;
+>>;
+d:=reverse(d);
+d:=list(d,cadr(wyd1));
+return d;
+end;
+%---------------------------------------------------------------------------------
+%-Set the auxiliary fields of corresponding gauge fields
+%---------------------------------------------------------------------------------
+symbolic procedure kyoto_scheme_auxiliary_fields(a);
+begin scalar b,c,d,f;
+for each x in a do <<
+      b:=kyoto_scheme_auxiliary_fields2(x);
+      c:=mkid('bb,car(x));
+      dagfl:=c.dagfl;
+      kyoto_scheme_auxiliary_fields1(c);
+      d:=list(c,cadr(b));
+      f:=list(b,d).f;
+>>;
+return f;
+end;
+
+algebraic procedure kyoto_scheme_auxiliary_fields1(a);
+begin;
+operator a;
+end;
+
+symbolic procedure kyoto_scheme_auxiliary_fields2(a);
+begin;
+kyoto_scheme_auxiliary_fields2_1(car(a),nth(a,4));
+return wyd14;
+end;
+
+symbolic procedure kyoto_scheme_auxiliary_fields2_1(a,b);
+for each x in b do if atom(x) then nil else kyoto_scheme_auxiliary_fields2_0(a,x);
+
+symbolic procedure kyoto_scheme_auxiliary_fields2_0(a,b);
+if car(b)=a then wyd14:=b else kyoto_scheme_auxiliary_fields2_1(a,b);
+
+%-------------------------------------------------------------------------------
+%-Contrust the bare lagrangian of gauge fixing term of kyoto scheme. -----------
+%-The lagrangian is in the form of auxiliary fields.                 -----------
+%-------------------------------------------------------------------------------
+symbolic procedure kyoto_bare_lagrangian(a,b);
+begin scalar c,d,f,ff,f1,f2;
+for each x in paramlist do <<
+       if not(atom(cadr(x))) and caadr(x) memq '(acos asin) then << 
+           angle_value:=(list('cos,car(x)).reval(list('cos,cadr(x)))).angle_value;
+           angle_value:=(list('sin,car(x)).reval(list('sin,cadr(x)))).angle_value;
+       >>;
+>>;
+angle_value:=for each x in angle_value collect car(x).reval(vertex_order_retain1(cdr(x)));
+for each x in b do 
+       if cadr(kyoto_scheme_auxiliary_fields2(x))=0 then c:=x.c else d:=x.d;
+for each x in c do  <<
+       f:=kyoto_scheme_auxiliary_fields2(x);
+       f:=par1(f,a);
+       ff:=reval(sublis(angle_value,nth(x,4)));
+       f1:=reval(list('times,f,ff)).f1;
+>>;
+d:=for each x in d collect car(x).x;
+d:=same_car_cdr(d);
+f2:=kyoto_bare_lagrangian1(a,d);
+f1:=append(f1,f2);
+f2:=kyoto_bare_lagrangian2(a,b);
+f1:=append(f1,f2);
+f1:=reval('plus.f1);
+return f1;
+end;
+
+%-------------------------------
+%-Produce B(w) times F(w) term.-
+%-------------------------------
+symbolic procedure kyoto_bare_lagrangian1(a,b);
+begin scalar c,d,f;
+for each x in b do <<
+    for each y in x do <<
+        c:=kyoto_scheme_auxiliary_fields2(y);
+        d:=par1(c,a);
+        d:=reval(dager(d));
+        f:=reval(list('times,d,nth(y,4))).f;
+    >>;
+>>;
+return f;
+end;
+
+%-------------------------------
+%-Produce B(a) times B(a) term.-
+%-a replace W,p,Z.             -
+%-------------------------------
+symbolic procedure kyoto_bare_lagrangian2(a,aa);
+begin scalar b,b1,c,d,f;
+for each x in a do <<
+      b:=caar(x);
+      b1:=par1(b,aa);
+      c:=mkid('eta,b);
+      kyoto_parameter_renormalize:=(c.b1).kyoto_parameter_renormalize;
+      kyoto_bare_variables:=c.kyoto_bare_variables;
+      d:=reval(list('times,c,cadr(x),dager(cadr(x))));
+      d:=reval(list('quotient,d,2));
+      f:=d.f;
+>>;
+b:=for each x in bosonmix collect if member(caaadr(x),kyoto_scheme_list) then caadr(x);
+b:=delnull(b);
+for each x in b do <<
+      d:=nil;
+      c:=mkid('eta,wydmkid(x));
+      kyoto_parameter_renormalize:=(c.0).kyoto_parameter_renormalize;
+      kyoto_bare_variables:=c.kyoto_bare_variables;
+      for each y in a do if member(caar(y),x) then d:=cadr(y).d;
+      d:=c.d;
+      d:=reval('times.d);
+      f:=d.f;
+>>;   
+return f;
+end;
+%-----------------------------------------------------------
+%-Renormalized the bare kyoto gauge fixing term.        ----
+%-----------------------------------------------------------
+symbolic procedure kyoto_renorma_lagrangian(a,aa);
+begin scalar b,c,b1,b2,f;
+b:=wydrenorma_list;
+b1:=for each x in aa collect caadr(x);
+b1:=append(car(b),b1);
+b2:=cadr(b);
+c:=kyoto_renorma_auxiliary(aa);
+c:=append(c,car(wyd1b));
+c:=sublis(subs_of_mix_mat,c);
+f:=kyoto_renorma_lagrangian1(a,c,b2,b1);
+f:=reval(f);
+return f;
+end;
+
+symbolic procedure kyoto_renorma_lagrangian1(a,b,c,d);
+for each x in a collect if atom(x) and not(member(x,c)) then x
+      else if atom(x) and member(x,c) then kyoto_renorma_mass(x)
+      else if member(car(x),d) then kyoto_renorma_fields(x,b)
+      else if car(x)='pd then kyoto_renorma_pd(x,b,d) 
+      else kyoto_renorma_lagrangian1(x,b,c,d);
+
+symbolic procedure kyoto_renorma_mass(a);
+begin scalar b,c;
+for each x in cadr(wyd1b) do if car(x)=a then b:=x;
+c:=reval(list('times,par1(a,cddr(b)),a));
+return c;
+end;
+
+symbolic procedure kyoto_renorma_fields(a,b);
+begin scalar c,d1,d2;
+c:=getml1(car(a),b);
+for each x in cdr(c) do <<
+        d1:=list(car(a).car(x));
+        d1:=list('times,sublis(d1,a),cadr(x));
+        d2:=d1.d2;
+>>;
+d2:='plus.d2;
+return d2;
+end;
+
+symbolic procedure kyoto_renorma_pd(a,b,aa);
+begin scalar c,f;
+if not(member(caadr(a),aa)) then f:=a else <<
+      c:=kyoto_renorma_fields(cadr(a),b);
+      f:=kyoto_renorma_pd1(c,a,aa);
+      f:=reval(f);
+>>;
+return f;
+end;
+
+symbolic procedure kyoto_renorma_pd1(a,a1,a2);
+for each x in a collect if atom(x) then x 
+else if member(car(x),a2) then list(car(a1),x,nth(a1,3)) 
+else kyoto_renorma_pd1(x,a1,a2); 
+%-----------------------------------------------------------
+symbolic procedure kyoto_renorma_auxiliary(a);
+begin scalar b,c,d1,d2,f,f1,f2,f3;
+for each x in a do 
+      if not(freeof(bosonmix,caar(x))) then b:=x.b else c:=x.c;
+for each x in c do <<
+      d1:=caar(x);
+      d2:=caadr(x);
+      for each y in car(wyd1b) do if car(y)=d1 then 
+          f:=list(d2,3,list(d2,reval(list('quotient,1,cadr(nth(y,3)))))).f;
+>>;
+f:=delrep(f);
+d1:=for each x in b collect caar(x);
+for each x in d1 do <<
+       f1:=nil;
+       for each y in car(wyd1b) do if car(y)=x then d2:=y;
+       for each y in d1 do f1:=par1(y,cddr(d2)).f1;
+       f1:=reverse(f1);
+       f2:=f1.f2;
+>>;
+f2:=reverse(f2);
+subs_of_mix_mat:=kyoto_renorma_auxiliary1(f2);
+f2:=sublis(subs_of_mix_mat,f2);
+f1:=algebraic(tp(1/symbolic('mat.f2)));
+f1:=reval_of_matrix(f1);  
+f2:=for each x in b collect caadr(x);
+for i:=1:length(f2) do <<
+      d1:=nth(f2,i);
+      d2:=for j:=1:length(f2) collect list(nth(f2,j),nth(nth(cdr(f1),i),j));
+      d2:=append(list(d1,1),d2);
+      f3:=d2.f3;
+>>;
+f3:=append(f,f3);
+return f3;
+end;
+
+symbolic procedure kyoto_renorma_auxiliary1(a);
+begin scalar b,c;
+for i:=1:length(a) do <<
+      for j:=1:length(nth(a,i)) do <<
+          b:=mkid(mkid('aa,i),j);
+          c:=(nth(nth(a,i),j).b).c;
+      >>;
+>>;
+return c;
+end;
+%-----------------------------------------------------------
+%-a is a list.For each x in a,if x1 and x2 has a same car,--
+%-then we would put their cdr in a list.At last,we also   --
+%-get these lists into a list.                            --
+%-----------------------------------------------------------
+symbolic procedure same_car_cdr(a);
+begin scalar b;
+for each x in a do 
+      b:=same_car_cdr1(x,b);
+b:=for each x in b collect cdr(x);
+return b;
+end;
+%-----------------------------------------------------------
+%-If car(a) (a is a pair) is same as one element of b,then -
+%-get cdr(a) into this element,else set up a new element of- 
+%-b,where list(car(a),cdr(a)).                             -
+%-----------------------------------------------------------
+symbolic procedure same_car_cdr1(a,b);
+begin scalar c;
+for each x in b do <<
+      if car(x)=car(a) then c:=reverse(cdr(a).reverse(x)).c
+      else c:=x.c;
+>>;
+c:=reverse(c);
+if c=b then c:=list(car(a),cdr(a)).c;
+return c;
+end;
+
+
+%-----------------------------------------------------------------------------
+%=a:a expression, b:a list that contain some operators, c:nil                =
+%=output:Give the all coefficients of the different term that consist of b.  =    
+%-----------------------------------------------------------------------------
+symbolic procedure sep_fun_term(a,b,den)$ 
+if atom(a) then symerr("wrong sep_fun_term",nil) else 
+if car(a)='quotient then sep_fun_term(cadr(a),b,caddr(a).den) else 
+if car(a)='plus then for each x in cdr(a) do sep_fun_term(x,b,den) else 
+if car(a)='times then sep_fun_term1(a,b,den) else 
+if car(a)='minus then sep_fun_term1(cadr(a),b,cons(-1,den)) 
+else sep_fun_term1(list('times,a),b,den);
+
+
+symbolic procedure sep_fun_term1(a,b,den)$  
+begin scalar c,d; 
+for each x in a do 
+    if atom(x) then d:=x.d else  
+    if car(x) memq b then c:=x.c else 
+    if car(x)='expt then  
+       if atom(cadr(x)) then d:=x.d else 
+       if caadr(x) memq b then c:=x.c 
+       else d:=x.d 
+    else d:=x.d; 
+den:=if den=nil then 1 else 
+     if cdr(den) then 'times.den 
+     else car(den);
+d:=reval(list('quotient,reverse(d),den));  
+if c=nil then symerr("wrong sep_fun_term1",nil); 
+c:=if cdr(c) then reval('times.c) else car(c); 
+kyoto_list:=emlist1(c,d,kyoto_list); 
+end; 
+      
+symbolic procedure emlist1(a,y,aa)$
+begin scalar n;
+aa:=for each x in aa collect
+        if n=nil and equal(a,car(x)) and (n:=1) then a.(y.cdr(x)) else x;
+return if n=nil then append(aa,list(list(a,y))) else aa;
+end;
+
+symbolic procedure epar1(x,a)$
+begin scalar b;
+for each y in a do
+    if b=nil and equal(car(y),x) then b:=cadr(y);
+return b;
+end;
+%----------------------------------------------------
+%-Input:car(a) is vertex, cadr(a) is feynmanrule.   -
+%-Output:if vertex is not contain ghost,then we     -
+%-will delete the part of feynmanrule which contain -
+%-the gauge fixing parameters.                      -
+%----------------------------------------------------
+symbolic procedure kyoto_scheme_gauge_del0(a);
+begin scalar b,c;
+for each x in kyoto_ksi_list do 
+    if not(freeof(cadr(a),x)) then c:=1;
+if c=1 then a:=kyoto_scheme_gauge_del(a);
+return a;
+end;
+
+symbolic procedure kyoto_scheme_gauge_del(a);
+begin scalar b,c,d,d1;
+for each x in cadar(a) do if member(car(x),pglist) then c:=1;
+if null(c) then <<
+      b:=cadr(a);
+      d:=for each x in cdr(gauge_fix_term_list) collect  
+          if member(nth(x,3),nth(wydrenorma_list,4)) then nth(x,4).nth(x,3) 
+          else nth(x,4).0;
+%
+      if nonlinear_variables then d:=append(d,for each x in nonlinear_variables collect x.0);
+      d1:=for each x in cdr(gauge_fix_term_list) collect nth(x,3);
+      d1:=delrep(d1);
+      b:=reval(sublis(d,b));
+      b:=kyoto_scheme_gauge_del1(b,d1);
+      a:=list(car(a),b);
+>>;
+return a;      
+end;
+
+symbolic procedure kyoto_scheme_gauge_del1(a,b);
+if a=0 then a else
+begin scalar c,d,d1,d2;
+if car(a)='quotient then c:=caddr(a) else c:=1;
+if car(a)='quotient then a:=cadr(a) else a:=a;
+if car(a)='plus then a:=cdr(a) else a:=list(a);
+d:=for each x in a collect reval(list('quotient,x,c));
+for each x in d do <<
+      d1:=nil;
+      for each y in b do if not(freeof(x,y)) then d1:=1;
+      if null(d1) then d2:=x.d2;
+>>;
+d2:=reval('plus.d2);
+return d2;
+end;
+
+symbolic procedure wydmkid(a);
+if length(a)=1 then car(a) 
+else wydmkid(append(list(mkid(car(a),cadr(a))),cddr(a)));
+
+symbolic procedure renorma_multi_to_add(a);
+begin scalar b,c,d,f;
+b:=rloop1;
+for each x in car(wyd1) do if nth(x,2)=1 then 
+      for each y in cddr(x) do if not(car(y)=car(x)) then c:=cadadr(y).c;
+for each x in c do f:=(x.reval(list('quotient,list('times,b,x),2))).f;
+for each x in wydrenorma_constant_list do if not(member(x,c)) then 
+      f:=(x.reval(list('plus,1,list('times,b,x)))).f;
+d:=for each x in a collect car(x).wyd_taylor_expansion(sublis(f,cdr(x)),loop_one,loop_order);
+return d;
+end;
+%===============================================================================)
+%(===============================Two higgs=============================
+%-------------------------------------------------------------------
+%input:number of rform. Output:Get the higgs fields which need renormalize.---
+%-------------------------------------------------------------------
+symbolic procedure renorma_list_of_higgs(a);
+begin scalar b,c;
+b:=renorma_list_of_matter(a,0);
+b:=renorma_list_of_higgs1(b);
+return b;
+end;
+
+symbolic procedure renorma_list_of_matter(a,aa);
+begin scalar b,c,d;
+for each x in matterinput do if nth(x,3)=aa then b:=x.b;
+for each x in b do if not(matter_of_gauge_charge(a,x)=0) then c:=x.c;
+if null(c) then nil else <<
+    c:=for each x in c collect cadr(x);
+    for each x in cdr(pchalist) do if member(cadr(x),c) then 
+        for each y in cddr(x) do d:=car(y).d;
+>>;
+return d;
+end;
+
+%----------------------------------------------------------------------
+%--Delete the  unphysical higgs(goldstone) from the renorma_list for --
+%--the unitary gauge.                                                --
+%----------------------------------------------------------------------
+symbolic procedure renorma_list_of_higgs1(a);
+begin scalar b,c,d,f,ff;
+for each x in r_ksi_value do if cdr(x)='infinit then b:=car(x).b;
+if null(b) then nil else <<
+    for each x in cdr(gauge_fix_term_list) do if member(nth(x,3),b) then c:=cadr(x).c;
+    d:=gaugeboson_to_goldstone();
+    for each x in d do if member(car(x),c) then f:=append(cdr(x),f);
+>>;
+if f then f:=delrep(f);
+for each x in a do if not(member(x,f)) then ff:=x.ff;
+return ff;
+end;
+
+%-------------------------------------------------------------------------
+%-In the linear gauge,list the goldstone in guage fix term correspoding --
+%-to the gauge boson.                                                   -
+%-------------------------------------------------------------------------
+symbolic procedure gaugeboson_to_goldstone();
+begin scalar a,b,c,c1,c2,c3,f,ff;
+for each x in cdr(pchalist) do ff:=append(cddr(x),ff);
+a:=all_of_higgs();
+for each x in a do if member(x,unphy_pa_list) then b:=x.b;
+for each x in cdr(gauge_fix_term_list) do <<
+    c3:=nil;
+    c:=if atom(cadr(x)) then cadr(x) else caadr(x);
+    c1:=par1(c,chargelist);
+    if find_mass(c)=0 then nil else
+        for each y in b do << 
+            c2:=par1(y,ff);
+            if c2=c1 then c3:=y.c3;
+        >>;
+    f:=(c.c3).f;
+>>;
+f:=delrep(f);
+return f;
+end;
+
+%--Find all the higgs in the model(incluede the one which not be renormalized)--
+symbolic procedure all_of_higgs();
+begin scalar b,d;
+for each x in matterinput do if nth(x,3)=0 then b:=x.b;
+if null(b) then nil else <<
+    b:=for each x in b collect cadr(x);
+    for each x in cdr(pchalist) do if member(cadr(x),b) then 
+        for each y in cddr(x) do d:=car(y).d;
+>>;
+return d;
+end;
+
+%---------------------------------------------------------------------
+%--Input:n is the number of gaugefields. a:a element of matterinput.--
+%--Output:The charge corresponding the input group of gaugefields. ---
+%---------------------------------------------------------------------
+symbolic procedure matter_of_gauge_charge(n,a);
+begin scalar b,c;
+b:=car(matterinput);
+for i:=1:length(b) do if nth(b,i)=n then c:=i;
+if length(b)=length(a)+1 then c:=c-1 else
+symerr("There are some change for the input matterinput",nil);
+b:=nth(a,c);
+return b;
+end;
+
+%========================================================)
+%(=======================================================================
+symbolic procedure renorma_list_of_fermion(a);
+begin scalar b,c;
+b:=renorma_list_of_matter(a,1);
+if fermion_generation then 
+    for each x in fermion_generation do if member(car(x),b) then c:=append(x,c);
+if null(c) then c:=b;
+return c;
+end;
+%=======================================================================)
+%(===================================Module 2=====================================
+%===============================================================================
+%This part is to produce follow list.
+%1,The list which would be renormalized in the model of the input.
+%2,The list which contains the renormalization constant corresponding to above list.
+%===============================================================================
+%This is the main procedure of this part.
+%-------------------------------------------------------------------------------
+symbolic procedure renorma_list();
+begin scalar a,a1,a3,b,b1,c,d,d1,f,ff,ff1,ff2;
+for each x in gaugefields do if member(car(x),rform) then << 
+       a:=nth(x,4);
+       a1:=nth(x,3);
+       a3:=nth(x,5);
+       if member(a,colorlist) then wyd_renormalization_model:='qcd else wyd_renormalization_model:='electroweak;
+       if member(a,colorlist) then d1:=pglist;
+       if member(a,colorlist) then for each x in d1 do 
+                if member(x,colorlist) then d:=x.d; 
+       a:=renorma_list1(a);
+       b:=renorma_list_of_higgs(car(x));
+       b1:=renorma_list_of_fermion(car(x));
+       b:=append(b,b1);
+       d:=append(append(a,d),b);
+
+       c:=for each y in d collect find_mass(y);
+       c:=delzero(c,nil);
+       c:=for each x in c collect if member(x,phyinput) then x else nil;
+       c:=delnull(c);
+       f:=list(d,c);
+       f:=for each y in f collect delnull(y);
+       ff:=f.ff;
+>>;
+ff:=w_append_all_element(ff);
+ff:=for each x in ff collect delrep(x);
+ff1:=coupling_renorma_list();
+ff:=append(ff,list(ff1));
+wydrenorma_list:=ff;
+%--delete unphysical fields
+ff1:=renorma_list2();
+ff:=reverse(ff1.reverse(ff));
+d1:=nil;
+for each x in ctadpole_list do if member(car(x),car(ff)) then d1:=cadr(x).d1;
+wydrenorma_list:=reverse(d1.reverse(ff));
+for each x in phyinput do if freeof(wydrenorma_list,x) then ff2:=x.ff2;
+ff2:=for each x in ff2 collect if freeof(matrixlist,x) then nil else x;
+ff2:=delnull(ff2);
+wydrenorma_list:=reverse(ff2.reverse(wydrenorma_list));
+return wydrenorma_list;
+end;
+
+symbolic procedure renorma_list1(a);
+begin scalar b;
+for each x in cdr(pchalist) do if cadr(x)=a then b:=for each y in cddr(x) collect car(y);
+b:=delrep(b);
+return b;
+end;
+
+%--------------------------------------------------------------------------
+%-This procedure is to produce the gauge fixing term of the "renorma_list".
+%--------------------------------------------------------------------------
+symbolic procedure renorma_list2();
+begin scalar a,b,c,d,c1,c2;
+for each x in car(wydrenorma_list) do 
+      if member(x,wydgauge_boson) then b:=x.b;
+c:=for each x in cdr(gauge_fix_term_list) collect if atom(cadr(x)) then cadr(x).nth(x,3) else caadr(x).nth(x,3);
+for each x in b do <<
+      c1:=nil;
+      c1:=getml1(x,c);
+      d:=(x.c1).d;
+>>;
+wydgauge_boson_fixing:=reverse(d);
+for each x in d do <<
+      for each y in cdr(gauge_fix_term_list) do if 
+          atom(cadr(y)) and nth(y,2)=car(x) then b:=y  else
+          if not(atom(cadr(y))) and caadr(y)=car(x) then b:=y;
+      if member(car(x),kyoto_scheme_list) then <<
+          kyoto_ksi_list:=nth(b,3).kyoto_ksi_list;
+          kyoto_ksi_list:=nth(b,4).kyoto_ksi_list;
+      >> else a:=cdr(x).a;
+>>;
+b:=nil;
+for each x in a do 
+    if sublis(r_ksi_value,x)='infinit then nil else b:=x.b;
+a:=nil;
+for each x in b do if sublis(r_ksi_value,x)=0 then landau_european:=x.landau_european else a:=x.a;
+return a;
+end;
+
+symbolic procedure coupling_renorma_list();
+begin scalar b,d,d1,d2;
+b:=for each x in rloop collect car(x);
+d:=for each x in expriment_easy_list collect cadr(x).nth(x,4);
+for each x in b do <<
+      if member(x,phyinput) then d2:=x.d2 else <<
+          d1:=nil;
+          d1:=getml1(x,d);
+          if null(d1) then symerr("wrong for no phyinput of coupling constant",nil);
+          d2:=d1.d2;
+      >>;
+>>;
+return d2;
+end;
+
+
+
+symbolic procedure fermion_left_right_judge();
+begin scalar a,b,c,c1,c2,d,d1,f,f1;
+a:=cdr(reval(mdefl));
+for each x in pflist do if member(x,car(wydrenorma_list)) then b:=x.b;
+d:=cddr(cdddr(car(matterinput)));
+for each x in b do <<
+    c1:=c2:=f:=nil;
+    c:=fermion_left_right_judge1(x);
+    for each y in a do if member(c,nth(y,3)) then c1:=cadr(y).c1;
+    for each y in matterinput do if member(cadr(y),c1) then c2:=y.c2;
+    if length(c2)=1 then <<
+        if nth(car(c2),4)='rl then f:=list(x,0,nth(car(c2),4)) 
+        else f:=list(x,1,nth(car(c2),4)); 
+    >> else if length(c2)=2 then <<
+        for i:=1:length(d) do << 
+            if not(freeof(rform,nth(d,i))) then <<
+                d1:=for each z in c2 collect nth(cddddr(z),i);
+                if car(d1)=cadr(d1) then f:=1;
+            >>;
+        >>;
+        f1:=for each xx in c2 collect nth(xx,4);
+        if car(f1)='l then nil else f1:=reverse(f1);
+        if f then f:=append(list(x,0),f1)
+        else f:=append(list(x,1),f1);
+    >>;
+    lr_state:=f.lr_state;
+>>;
+wydneutrino:=wydneutrino_list();
+end;
+
+%-----------------------------------------
+%--e.g. if a=qu,qs or qt then return qu.--
+%-----------------------------------------
+symbolic procedure fermion_left_right_judge1(a);
+if null(fermion_generation) then a else
+begin scalar b;
+for each x in fermion_generation do if member(a,x) then b:=car(x);
+return b;
+end;
+
+
+symbolic procedure all_element_equal(a);
+begin scalar b;
+for each x in cdr(a) do if not(x=car(a)) then b:=1;
+return if b then nil else 1;
+end;
+
+%----------------------------------------------------------------
+%Input:A field.
+%Output:If the field is physical,procedure would output its mass.
+%if the field is not physical,procedure would output zero.
+%----------------------------------------------------------------
+symbolic procedure find_mass(a);
+begin scalar b;
+b:=par1(a,phymass);
+if null(b) then b:=0;
+return b;
+end;
+
+%-----------------------------------------------------------
+%output:A list that the input remove the repeating element.
+%-----------------------------------------------------------
+symbolic procedure delrep(a);
+if null(a) then a else
+if member(car(a),cdr(a)) then delrep(cdr(a)) 
+else car(a).delrep(cdr(a));  
+
+%--------------------------------------------------
+%output:A list which contains all the atoms in input;
+%--------------------------------------------------
+symbolic procedure collect_all_atoms0(a);
+begin scalar b;
+lx:=nil;
+collect_all_atoms(a);
+b:=lx;
+return b;
+end;
+
+symbolic procedure collect_all_atoms(a);
+if atom(a) then lx:=a.lx else
+for each x in a collect collect_all_atoms1(x);
+
+symbolic procedure collect_all_atoms1(a);
+if atom(a) then lx:=a.lx else collect_all_atoms(a);
+
+%--------------------------------------------------
+%Input:a:A list, b:nil.
+%Output:The list that "a" remove the zero element.
+%--------------------------------------------------
+symbolic procedure delzero(a,b);
+if null(a) then b else 
+if car(a)=0 then delzero(cdr(a),b) 
+else delzero(cdr(a),car(a).b);
+
+%--------------------------------------------------
+%Same as "delzero" but with zero replaced by "nil"
+%--------------------------------------------------
+symbolic procedure delnull(a);
+if null(a) then nil else
+if length(a)=1 and not(null(car(a))) then a else 
+if length(a)=1 and null(car(a)) then nil else
+if not(null(car(a))) then car(a).delnull(cdr(a)) else
+delnull(cdr(a));
+
+%---------------------------------------------------
+%"a" remove the first element same as "b"
+%--------------------------------------------------
+symbolic procedure delfc(a,b);
+if car(a)=b then cdr(a) else car(a).delfc(cdr(a),b);
+
+%----------------------------------------------------------
+%Input:a:a list. b:any form.
+%Output:The list where "a" removing the element same as "b".
+%-----------------------------------------------------------
+symbolic procedure delone(a,b);
+if null(a) then nil else
+if car(a)=b then delone(cdr(a),b) 
+else car(a).delone(cdr(a),b);
+
+%--------------------------------------------------
+%The renormalization constant list of fields
+%--------------------------------------------------
+symbolic procedure renorma_constant_add(a);
+begin scalar b,b1,b2,c,c1,c2,c3,c4,c6,f,gg,gg1;
+c:=renorma_constant_add_boson(pb0list);
+c1:=renorma_constant_add_boson(pb1list);
+c2:=renorma_constant_add_fermion(pflist);
+f:=append(append(c,c1),c2);
+renorma_constant_add_check(f);
+
+c3:=for each x in append(cadr(a),caddr(a)) collect renorma_constant_add4(x);
+c3:=delnull(c3);
+c4:=for each x in nth(a,4) collect renorma_constant_add4(x);
+wydgauge_boson_fixing1:=renorma_constant_add6(c4);
+c3:=append(c3,c4);
+c6:=landau_ksi_renorma(f);
+c3:=append(c3,c6);
+wydrenorma_constant_list:=renorma_constant_add5(list(f,c3));
+gg:=renorma_constant_add_tadpole();
+gg1:=renorma_constant_add_angle();
+%renorma_constants_higher_order();
+return list(f,c3,gg,gg1);
+end;
+
+symbolic procedure renorma_constant_add_angle();
+begin scalar a;
+if null(nth(wydrenorma_list,6)) then nil else
+a:=for each x in nth(wydrenorma_list,6) collect list(x,mkid('dez,x));
+return a;
+end;
+
+symbolic procedure landau_ksi_renorma(a);
+if null(landau_european) then nil else
+begin scalar b,c,f;
+for each x in landau_european do <<
+    for each y in cdr(gauge_fix_term_list) do if caddr(y)=x then b:=cadr(y);
+    for each y in a do if car(y)=b then c:=reval(list('times,2,cadr(nth(y,3))));
+    f:=list(x,4,list(x,list('times,c,x))).f;
+>>;
+return f;
+end;
+
+symbolic procedure renorma_constant_add_check(a);
+begin scalar b;
+b:=for each x in a collect car(x);
+if common_list(car(wydrenorma_list),b) then nil else
+symerr("There exit some fields not to renormalized which should be.",nil);
+end;
+%-----------------------------------------------------------------------------------
+%--Set the renormalization constant for spin zero and one (no mixing and mixing).---
+%--Input:the fields of spin zero and one of Renorma_list.                        ---
+%-----------------------------------------------------------------------------------
+symbolic procedure renorma_constant_add_boson(a);
+begin scalar a1,b,c,d,d1,f,ff;
+for each x in a do if member(x,car(wydrenorma_list)) then a1:=x.a1;
+for each x in a1 do 
+    if freeof(bosonmix,x) then b:=x.b else c:=x.c;
+if b then 
+    d:=for each x in b collect renorma_constant_add_boson2(x);
+if c then <<
+    for each x in bosonmix do if member(caaadr(x),c) then d1:=x.d1;
+    for each y in d1 do <<   
+        f:=for each z in caadr(y) collect renorma_constant_add_boson1(z,caadr(y));
+        ff:=append(f,ff);
+    >>;
+>>; 
+ff:=append(d,ff);
+return ff;   
+end;
+
+symbolic procedure renorma_constant_add_boson1(a,b);
+begin scalar c,c1,d,f,g,gg;
+for each x in b do <<
+  c1:=mkid('dez,mkid(a,x));
+  g:=mk_renorm_z(list(a,x));
+  c:=list(x,list('quotient,c1,2)).c;
+  gg:=list(c1,g).gg;
+>>;
+for each x in c do if car(x)=a then d:=x;
+c:=delone(c,d);
+c:=d.c;
+f:=list(a,1,c);
+latex_s_list:=append(latex_s_list,gg);
+return f;
+end;
+
+symbolic procedure renorma_constant_add_boson2(a);
+begin scalar b,b1,gg;
+b1:=mkid('dez,a);
+b:=list('quotient,b1,2);
+gg:=mk_renorm_z(a);
+latex_s_list:=append(latex_s_list,list(list(b1,gg)));
+return list(a,3,list(a,b));
+end;
+%--------------------------------------------------------------------------
+%--Set the renormalization constant for spin 1/2(no mixing).            ---
+%--Input:the fields of spin 1/2 of Renorma_list.                        ---
+%--------------------------------------------------------------------------
+symbolic procedure renorma_constant_add_fermion(a);
+begin scalar b,c,d;
+for each x in a do if member(x,car(wydrenorma_list)) then b:=x.b;
+c:=for each x in b collect renorma_constant_add_fermion1(x);
+return c;
+end;
+
+symbolic procedure renorma_constant_add_fermion1(a);
+begin scalar b,c,d,f,g,gg,b1;
+b:=list('quotient,mkid('dez,mkid(a,'l)),2);
+c:=list('quotient,mkid('dez,mkid(a,'r)),2);
+d:=list('quotient,mkid('dez,a),2);
+
+for each x in lr_state do if car(x)=a then b1:=x;
+if cadr(b1)=0 then f:=list(a,3,list(a,d)) else
+if cadr(b1)=1 then <<
+   f:=for each x in cddr(b1) collect list('quotient,mkid('dez,mkid(a,x)),2);
+   f:=for each x in f collect list(a,x);
+   f:=list(a,2,f);
+>>;
+b:=reval(list('times,2,b));
+c:=reval(list('times,2,c));
+d:=reval(list('times,2,d));
+g:=mk_renorm_zf(a);
+gg:=list(list(d,nth(g,1)),list(b,nth(g,2)),list(c,nth(g,3)));
+latex_s_list:=append(latex_s_list,gg);
+return f;
+end;
+%-------------------------------------------------------
+%--Set the renormalization constant for tadpole.   -----
+%-------------------------------------------------------
+symbolic procedure renorma_constant_add_tadpole();
+begin scalar a,gg;
+a:=for each x in nth(wydrenorma_list,5) collect list(x,mkid('dez,x)); 
+for each x in a do <<
+      gg:=list(cadr(x),mk_renorm_m(car(x)));
+      latex_s_list:=append(latex_s_list,list(gg));
+>>;
+for each x in a do wydrenorma_constant_list:=cadr(x).wydrenorma_constant_list;
+for each x in a do 
+      for each y in ctadpole_list do if cadr(y)=car(x) then tadpole_renorma:=(car(y).cadr(x)).tadpole_renorma;
+return a;
+end;
+
+
+          
+symbolic procedure renorma_constant_add4(a);
+begin scalar b,c,gg;
+b:=mkid('dez,a);
+c:=list(a,4,list(a,b));
+gg:=list(b,mk_renorm_m(a));
+latex_s_list:=append(latex_s_list,list(gg));
+return c;
+end;
+
+%a:renorma_list
+symbolic procedure renorma_constant_add_v(a);
+begin scalar b,c;
+b:=renorma_constant_addlist;
+c:=for each x in car(b) collect if cadr(x)=1 then append(list(car(x),cadr(x)),caddr(x)) 
+   else x;
+return c.cdr(b);
+end;
+
+symbolic procedure renorma_constant_add5(a);
+begin scalar c,d;
+for each x in car(a) do <<
+       if cadr(x)=3 then c:=list(reval(list('times,2,cadr(nth(x,3))))) else
+       c:=for each y in caddr(x) collect reval(list('times,2,cadr(y))); 
+       d:=append(c,d);
+>>;
+c:=for each x in cadr(a) collect cadr(nth(x,3));
+d:=append(d,c);
+return d;
+end;
+
+symbolic procedure renorma_constant_add6(a);
+begin scalar b,c;
+if null(a) then b:=nil else <<
+    for each x in wydgauge_boson_fixing do <<
+        c:=cdr(x);
+        c:=getml1(c,a);
+        if null(c) then nil else <<
+            c:=cadadr(c);
+            c:=car(x).c;
+            b:=c.b;
+        >>;
+    >>;
+>>;
+return b;
+end;
+%=============================Module 2 end==================================)
+
+%(=============================Module 3=======================================
+%This part is to produce the counterterm of the input model.
+%=============================================================================
+symbolic procedure counterterm_generate();
+begin scalar a,b,c,d;
+a:=tadpole_of_higgs(vertex2_list1);
+b:=vertex_counterterm_list();
+c:=propagator_counterterm_list();
+b:=propa_interface();
+b:=append(b,propa_transition());
+b:=append(b,a);
+c:=vertex_interface();
+return list(b,c);
+end;
+
+%--------------------------------------------------------------------
+%This function is to find the particle satisfying the property  which
+%is physical scalar and electrically neutral.
+%Usually it's only higgs satisfying these property in SM.
+%--------------------------------------------------------------------
+symbolic procedure tadpole_of_higgs(b);
+begin scalar f1,f2,f3,f0;
+f1:=for each x in ctadpole_list collect car(x);
+f0:=rloop;
+f0:=for each x in f0 collect car(x).reval(list('quotient,cdr(x),2));
+for each x in f1 do if member(x,car(wydrenorma_list)) then f3:=x.f3;
+for each x in f3 do <<
+      for each y in b do if caaar(y)=x then f1:=list(caar(y));
+      f2:=list(f1,f0).f2;
+>>;
+return f2;
+end;
+
+symbolic procedure physical_neutral_scalar_particle();
+begin scalar a,b,c,d;
+for each x in car(wydrenorma_list) do <<
+   c:=particle_type1(x,splist); 
+   if c='b0 then b:=x.b;
+>>;
+for each x in b do <<
+   c:=electric_charge(x);
+   if c=0 then a:=x.a;
+>>;
+for each x in a do <<
+      b:=par1(x,phymass);
+      if member(b,phyinput) then d:=x.d;
+>>;
+return d;
+end;
+
+%-----------------------------------------------------------------
+%--Generate the tadpole term in higgs mass in bare lagrangian. ---
+%--The corresponding higgs and mass is renormalized.           ---
+%-----------------------------------------------------------------
+symbolic procedure higgs_mass_tad();
+begin scalar a,b,c,d,d1,d2,d3,f,ff;
+for each x in rform do <<
+    a:=renorma_list_of_matter(x,0);
+    b:=append(a,b);
+>>;
+b:=delrep(b);
+for each x in b do if not(member(x,unphy_pa_list)) then c:=x.c;
+for each x in vertex2_list1 do if member(caaar(x),c) and caaar(x)=caadar(x) then d:=x.d;
+a:=nil;
+for each x in d do <<
+    d1:=caaar(x);
+    d2:=find_mass(d1);
+    f:=for each y in car(x) collect nth(y,3);
+    d3:=momentum_get_zero(cadr(x),f);
+    f:=for each x in list(d2) collect x.0;
+    d3:=reval(sublis(f,d3));
+    a:=list(d1,d2,d3).a;
+>>;
+return a;
+end;
+
+%-----------------------------------------------------------------------
+%--We label the momentum by r. then this function                     --
+%--make the expression a that where r=0,(cons r r)=0 and (cons r v)=0.--
+%-----------------------------------------------------------------------
+symbolic procedure momentum_get_zero(a,b);
+if atom(a) and not(member(a,b)) then a else
+if atom(a) and member(a,b) then 0 else
+if car(a)='cons and momentum_get_zero1(a,b) then 0 
+else for each x in a collect momentum_get_zero(x,b);
+
+symbolic procedure momentum_get_zero1(a,b);
+begin scalar c;
+for each x in b do if member(x,a) then c:=1;
+return c;
+end;
+%------------------------------------------------------------------
+%Input:A field.
+%Output:1,The type of the particle(such as s0,s1,sf ...).
+%       2,The type1 of the particle(such as b0,b1,psi ...).
+%------------------------------------------------------------------
+symbolic procedure particle_type(a,b);
+begin scalar c;
+for each x in b do if member(a,x) then c:=car(x);
+return c;
+end;
+
+symbolic procedure particle_type1(a,b);
+begin scalar c;
+c:=particle_type(a,b);
+c:=particle_type(c,patable1);
+return c;
+end;
+
+%------------------------------------------------------------------
+%Input:A field.
+%Output:The electric charge of the field.
+%------------------------------------------------------------------
+symbolic procedure electric_charge(a);
+begin scalar b;
+b:=par1(a,wydelectric_charge);
+return b;
+end;
+
+%-----------------------------------------------------------------
+%Make hhlist for tadpole.
+%-----------------------------------------------------------------
+symbolic procedure tadpole_counterterm_list(a);
+begin scalar b,c,d;
+for each x in a do <<
+      b:=caaar(x);
+      c:=getml1(b,tadpole_renorma);
+      c:=list(car(x),c,1);
+      d:=c.d;
+>>;
+for each x in d do w_w_put_in_hhlist(car(x),cadr(x),caddr(x));
+return 1;
+end;
+
+%-----------------------------------------------------------------
+%Make hhlist for two particle vertexs(propagator).
+%-----------------------------------------------------------------
+symbolic procedure propagator_counterterm_list();
+begin scalar a,b,c;
+a:=propa_oneparticle();
+for each x in a do <<
+    b:='nil.cdr(reverse(x));
+    write "begin vertex ",car(x)," .";wspace();
+    if not(reval(cadr(x))=0) then b:=vertex_counterterm_list1(list(b,cadr(x)));
+%    if caaar(x)='p then  symerr("stop here",nil);
+>>;
+if gauge_symmetric_scheme=1 and loop_order=1 then hhlist:=for each x in hhlist collect propagator_counterterm_list1(x);
+return 1; 
+end;
+
+symbolic procedure propagator_counterterm_list1(a);
+begin scalar b,c,d,d1,d2,f;
+b:=car(a);
+if length(b)=2 and not(caar(b)=caadr(b)) then 
+      c:=list('times,'(cons r1 va),'(cons r1 v),loop_one,'gauge_adder) 
+else c:=0;
+d1:=getml1('z,wydgauge_boson_fixing1);
+d2:=getml1('w,wydgauge_boson_fixing1);
+d:=list('quotient,list('times,list('plus,d1,list('minus,d2)),'(cos theta)),list('times,'(sin theta),'ksi1));
+%d:=sublis(r_ksi_value,d);
+d:=list('gauge_adder.d);
+c:=reval(sublis(d,c));
+if c=0 then f:=a else f:=car(a).reval(list('plus,cdr(a),c));
+return f;
+end;
+
+      
+
+%----------------------------------------------------------------
+%Make hhlist for more particle vertexs.
+%output:The renormalized lagrangian of vertex(not the feynman rule)
+%-----------------------------------------------------------------
+symbolic procedure vertex_counterterm_list();
+begin scalar a,b,c;
+wyd1:=renorma_constant_add_v(wydrenorma_list);
+renorma_constant_multilist:=renorma_constant_multi(wyd1);
+wydrenorma_constant_list_zero:=renorma_constants_zero_order();
+wydrenorma_constant_list_higher:=renorma_constants_higher_order();
+wydrenorma_fields_list:=renorma_fields_higher();
+wyd11:=append(w_append_all_list(wydrenorma_list),wyd11);
+a:=for each x in rloop collect car(x);
+for each x in expriment_easy_list do if not(member(cadr(x),a)) then wyd11:=cadr(x).wyd11;
+wyd_taylor_expansion_depend('list.wyd11,'list.a);
+
+wyd10:=for each x in rloop collect car(x).1;
+wyd10:=list(wyd10);
+a:=vertex_oneparticle();
+
+loop_order:=reval(list('quotient,cdar(rloop),2));
+loop_one:=reval(list('expt,caar(rloop),2));
+
+wyd2:=substitution_of_coupling();
+b:=for each x in car(wyd10) collect list('expt,car(x),cdr(x));
+b:=reval('times.b);
+tadpole_redefine:=for each x in ctadpole_list collect cadr(x).list('quotient,cadr(x),b);
+
+wyd5:=substitution_of_new_phy();
+wyd3:=substitution_of_otherparameter();
+for each x in wyd3 do zero_higher_of_other(x);
+wyd7:=wdfcs();
+wydtrigono_re:=wyd7;
+kyoto_ksi_renorma:=kyoto_scheme();
+kyoto_ksi_renorma:=renorma_multi_to_add(kyoto_ksi_renorma);
+gcoupling_for_df();
+for each x in a do <<
+    b:=par1(car(x),cclist);
+    b:=reval(list('quotient,b,'i));
+    c:=factor_common_particle(cadr(x));
+    b:=reval(list('quotient,b,c));
+    if not(b=0) then b:=vertex_counterterm_list1(list(x,b));
+    write "The counterterm of vertex ",car(x)," has been generated.";
+    wspace();
+>>;
+return 1;
+end;
+
+%-------------------------------------------------------------------------
+%choose the dez and sintheta to depend to g and g3.
+%--------------------------------------------------------------------------
+algebraic procedure wyd_taylor_expansion_depend(a,b);
+begin;
+for each y in b do for each x in a do depend(x,y);
+end;
+
+
+%------------------------------------------------------------------------%
+%In the vertex_counterterm_list2 procedure,when we encounter the term    %
+%df(g3,g3,n) (actually,the former "g3" represent the bare coupling,and   %
+%later represent the renormalized coupling),so it equal to 1 is a bug.   %
+%this procedure will prepare a list for this expression that let it be   %
+%right.                                                                  %
+%------------------------------------------------------------------------%
+symbolic procedure gcoupling_for_df();
+begin scalar a,b,c;
+a:=nth(wydrenorma_list,3);
+b:=for each x in wyd5 collect car(x);
+for each x in a do if freeof(b,x) then c:=x.a;
+if null(c) then nil else <<
+   gcoup_list:=for i:=1:length(c) collect nth(c,i).mkid('gcoup,i);
+   a:=for each x in gcoup_list collect car(x);
+   b:=for each x in gcoup_list collect cdr(x);
+   wyd_taylor_expansion_depend('list.b,'list.a);
+>>;
+end;
+
+symbolic procedure zero_higher_of_other(a);
+begin scalar b,c;
+b:=cdr(a);
+c:=for each x in rloop collect car(x).1;
+for each x in c do b:=reval(vertex_order_retain_more1(b,car(x),cdr(x)));
+b:=vertex_counterterm_list5(b);
+b:=sublis(wyd5,b);
+b:=reval(vertex_order_retain1(b));
+wydrenorma_constant_list_higher:=(car(a).b).wydrenorma_constant_list_higher;
+end;
+%--------------------------------------------------------
+%The renorma constant for zero order.
+%--------------------------------------------------------
+symbolic procedure renorma_constants_zero_order();
+begin scalar a;
+a:=for each x in nth(wydrenorma_list,5) collect x.0;
+return a;
+end;
+
+symbolic procedure renorma_constants_higher_order();
+begin scalar a,c;
+a:=renorma_constant_multilist;
+%for each x in car(a) do 
+%    for each y in cddr(x) do c:=(cadr(y).1).c;
+for each x in cadr(a) do 
+    if member(car(x),append(cadr(wydrenorma_list),nth(wydrenorma_list,6))) then c:=(car(x).cadr(nth(x,3))).c 
+    else c:=(car(x).list('times,car(x),cadr(nth(x,3)))).c;
+for each x in nth(a,3) do c:=(car(x).cadr(x)).c;
+for each x in nth(a,4) do c:=(cadr(x).list('quotient,1,car(x))).c;
+return c;
+end;
+
+%-------------------------------------------------
+%The renorma constants for higher order of fields.
+%-------------------------------------------------
+symbolic procedure renorma_fields_higher();
+begin scalar a,b,c,d,f,f1;
+a:=renorma_constant_multilist;
+for each x in car(a) do 
+    if cadr(x)=2 then <<
+      b:=cdr(getml1(car(x),lr_state));
+      d:=cddr(x);
+      d:=for each xx in d collect list('quotient,cadr(xx),2);
+      f:=for each xx in b collect mkid(car(x),xx);
+      for each x in f do wyd11:=x.wyd11;
+      f1:=for each xx in f collect xx.car(x);
+      fermion_field_back:=append(fermion_field_back,f1);
+      for each xx in f do algebraic(operator(xx));
+      d:=for i:=1:length(b) collect list(nth(f,i),list(list(nth(f,i).car(x)),nth(d,i)));
+      for each xx in d do c:=xx.c;
+    >> else <<
+    f:=nil;
+    for each y in cddr(x) do f:=list(list(car(x).car(y)),list('quotient,cadr(y),2)).f;
+    c:=(car(x).f).c;
+    >>;
+return c;
+end;
+
+
+symbolic procedure renorma_constant_multi(a);
+begin scalar b,c,c1,d,f;
+b:=car(a);
+for each x in b do <<
+    c1:=if cadr(x)=2 then nth(x,3) else cddr(x);
+    c:=list(car(x),cadr(x));
+    d:=for each y in c1 collect list(car(y),reval(list('times,2,cadr(y))));
+    f:=append(c,d).f;
+>>;
+return reverse(f).cdr(a);
+end;
+
+symbolic procedure factor_common_particle(a);
+begin scalar b,c;
+a:=for each x in a collect list(car(x),cadr(x)).x;
+b:=same_car_cdr(a);
+c:=for each x in b collect for i:=1:length(x) collect i;
+c:=for each x in c collect 'times.x;
+c:=reval('times.c);
+return c;
+end;
+
+%vertex_counterterm_list1
+symbolic procedure vertex_counterterm_list1(a);
+begin scalar c,cc,c1,c2,c3,c4,c5,c6,b1;
+a:=kyoto_scheme_gauge_del0(a);
+if cadr(a)=0 then nil else <<
+    c5:=vertex_coupling_zero_all(car(a));
+    c6:=sublis(wyd2,c5);
+
+   
+    cc:=reval(sublis(tadpole_redefine,cadr(a)));
+    for each x in cadar(a) do if cadr(x)=-1 then c1:=x.c1 else c2:=x.c2;
+    c1:=for each x in c1 collect fermion_form_of_leftright(x);
+    c2:=for each x in c2 collect fermion_form_of_leftright(x);
+
+    c:='times.append(c1,append(list(c6,cc),c2));
+    c1:=list('g.'gg);
+%    algebraic(operator(gg));
+    c:=sublis(c1,c);
+%    c:=reval(sublis(r_ksi_value,c));
+    if fermion_if_or_not(cadar(a)) then 
+    for each x in wyd10 do vertex_counterterm_list2(c,x,c5) 
+    else for each x in wyd10 do vertex_counterterm_new(list(c6,sublis(c1,cc),'times.cadar(a)),x);
+>>;
+end;
+
+%----------------------------------------------------------------
+%if a is fermion fields in form for example:(ef -1 r1)
+%we would like to write it like:
+%if l and r pl(efr -1 r1)+pr(efl -1 r1) or 
+%           pr(efr 1 r1)+pl(efl 1 r1)
+%if l       pr(efl -1 r1)
+%if lr      (ef -1 r1)
+%if a is not fermion (p 0 va r1) then
+%output is (p 0 va r1) no change.
+%----------------------------------------------------------------
+symbolic procedure fermion_form_of_leftright(a);
+if not(member(car(a),pflist)) then a else
+begin scalar b,c,d;
+b:=getml1(car(a),lr_state);
+if cadr(b)='lr or cadr(b)='rl then d:=a else 
+if car(b)=0 then d:=a else  <<
+    b:=cdr(b);
+    c:=for each x in b collect car(a).mkid(car(a),x);
+    if cadr(a)=1 then
+    d:=for i:=1:length(c) collect list('times,if nth(b,i)='l then wydpl else wydpr,sublis(list(nth(c,i)),a)) else
+    d:=for i:=1:length(c) collect list('times,if nth(b,i)='r then wydpl else wydpr,sublis(list(nth(c,i)),a));
+    d:=reval('plus.d);
+>>;
+return d;
+end;
+
+symbolic procedure vertex_counterterm_list2(a,b,c);
+begin scalar c,d,d1,d2,f,f1,f2,cc,cc1;
+a:=sublis(gcoup_list,a);
+cc1:=for each x in b collect factorial(cdr(x));
+cc1:=reval('times.cc1);
+
+for each x in b do if not(cdr(x)=0) then d:=x.d;
+d:=reverse(d);
+d1:=for each x in d collect car(x).reval(list('times,2,cdr(x)));
+f:=vertex_counterterm_list3(a,d,d1);
+f:=reval(sublis(fermion_field_back,f));
+f:=reval(list('quotient,f,cc1));
+f:=sublis(wyd5,f);
+f:=reval(f);
+f:=reval(sublis(r_ksi_value,f));
+%f:=order_for_check(f);
+if not(f=0) then w_w_put_in_hhlist(f,1,2);
+end;
+
+symbolic procedure order_for_check(a);
+if atom(a) then a else
+begin scalar b,c,d;
+if car(a)='quotient then b:=caddr(a) else b:=1;
+if car(a)='quotient then a:=cadr(a) else a:=a;
+if car(a)='plus then a:=car(a).reverse(cdr(a));
+a:=reval(list('quotient,a,b));
+return a;
+end;
+
+symbolic procedure vertex_counterterm_list3(a,b,bb);
+begin scalar f,c;
+for each x in b do a:=reval(vertex_order_retain_more1(a,car(x),cdr(x)));
+f:=expression_of_rloop();
+c:=list('gg.'g);
+a:=reval(sublis(c,a));
+a:=vertex_counterterm_list5(a);
+a:=rsublis(gcoup_list,a);
+a:=reval(sublis(wydrenorma_constant_list_zero,a));
+a:=vertex_order_retain1(a);
+a:=reval(list('times,a,f));
+return reval(a);
+end;
+
+
+
+algebraic procedure vertex_counterterm_list4(a,c);
+begin;
+for each x in c do a:=sub(x=0,a);
+a:=vertex_order_retain1(a);
+return a;
+end;
+
+%---------------------------------------------------
+%This procedure replace detz to zero order,and 
+%replace (df detz g) to concrete expression.
+%--------------------------------------------------
+symbolic procedure vertex_counterterm_list5(a);
+if atom(a) then a else
+if car(a)='df then vertex_counterterm_list5_2(a)
+else for each x in a collect vertex_counterterm_list5_1(x);
+
+symbolic procedure vertex_counterterm_list5_1(a);
+if atom(a) then a else
+if car(a)='df then vertex_counterterm_list5_2(a) 
+else vertex_counterterm_list5(a);
+
+symbolic procedure vertex_counterterm_list5_2(a);
+begin scalar b,c;
+if not(atom(cadr(a))) then <<
+    b:=getml1(caadr(a),wydrenorma_fields_list);
+    b:=for each x in b collect list('times,sublis(car(x),cadr(a)),cadr(x));
+    a:=reval('plus.b);
+>> else <<
+    a:=rsublis(gcoup_list,cadr(a));
+    a:=sublis(wydrenorma_constant_list_higher,a);
+    a:=reval(a);
+>>;
+return a;
+end;
+
+algebraic procedure vertex_order_retain_more1(a,b,c);
+begin scalar d1,d2,d;
+d1:={abs(~x) => x when notminus(x) };
+d:=df(a,b,c);
+%d:=trigsimp(d,compact);
+return d;
+end;
+
+%----------------------------------------------------%
+%This procedure is make ((a.a1) (b.b1) ...) become   %
+%((a1.a) (b1.b) ...) and then do sublis              %
+%----------------------------------------------------%
+symbolic procedure rsublis(a,b);
+begin scalar c;
+c:=for each x in a collect cdr(x).car(x);
+c:=sublis(c,b);
+return c;
+end;
+
+%--------------------------------------------------
+%Divide a expression to two part,car is the part 
+%contain element of wyd11,cdr is the part not.
+%--------------------------------------------------
+symbolic procedure vertex_factor_divide(a);
+begin scalar a1,a2,b,c1,c2;
+if car(a)='quotient then <<
+      a1:=cadr(a);
+      a2:=caddr(a);
+>> else <<
+      a1:=a;
+      a2:=1;
+>>;
+b:=reval(algebraic(factorize(symbolic(a1))));
+for each x in cdr(b) do <<
+      b:=nil;
+      for each y in wyd11 do if not(freeof(cadr(x),y)) then b:=1;
+      if b=1 then c1:=cdr(x).c1 else c2:=cdr(x).c2;
+>>;
+c1:=for each x in c1 collect reval(list('expt,car(x),cadr(x)));
+c2:=for each x in c2 collect reval(list('expt,car(x),cadr(x)));
+c1:='times.c1;
+c2:='times.c2;
+b:=nil;
+for each x in wyd11 do if not(freeof(a2,x)) then b:=1;
+if b=1 then c1:=list('quotient,c1,a2) else c2:=list('quotient,c2,a2);
+return list(c1,c2);
+end;
+
+%----------------------------------------------------------
+%Rule for sin(theta)^2=>1-cos(theta)^2,cos(theta)=>Mw/Mz.--
+%----------------------------------------------------------
+symbolic procedure simplify_cos_mz(a);
+begin scalar b,c;
+b:=wyd8;
+b:=construles;
+for each x in wyd8 do 
+    if caar(x)='sin then b:=x else c:=x;
+
+end;
+%-----------------------------------------------------------
+%The renormalization constants for higher order.
+%for example:dezw---->(dezw+g^2*2dezw) for loop=2.
+%dezw---->(dezw+g^2*2dezw+g^4*3dezw) for loop=3.
+%----------------------------------------------------------
+symbolic procedure renorma_constants_higher_order0();
+begin scalar a0,a,b,c,d0,d,f,ff;
+a0:=caar(rloop);
+a:=reval(list('expt,a0,2));
+b:=cdar(rloop);
+c:=reval(list('quotient,b,2));
+if c=1 then nil else for each x in wydrenorma_constant_list do <<
+      ff:=nil;
+      for i:=2:c do <<
+          d0:=explode(x);
+          d:=list(car(d0),cadr(d0),caddr(d0));
+          d0:=cdddr(d0);
+          d0:=compress(d0);
+          d:=compress(d);
+          d:=mkid(d,i);
+%         d:=mkid(d,a0); (for mixing loop)
+          d:=mkid(d,d0);
+%latex_s_list for higher order renormalization constants.
+          d0:=mk_renorm_higher(x,i);
+          d0:=list(d,d0);
+          latex_s_list:=append(latex_s_list,list(d0));
+%-----------------------------------------------------
+          f:=i-1;
+          f:=reval(list('expt,a,f));
+          d:=reval(list('times,f,d));
+          ff:=d.ff;
+      >>;
+      ff:=x.reverse(ff);
+      ff:='plus.ff;
+      wydrenorma_constant_list_higher:=(x.ff).wydrenorma_constant_list_higher;
+>>;
+return nil;
+end;
+%----------------------------------------------------------------
+%Make taylor expansion of a with respect to b to order c.
+%----------------------------------------------------------------
+symbolic procedure wyd_taylor_expansion(a,b,c);
+begin scalar d;
+d:=for i:=0:c collect vertex_order_retain(a,b,i);
+d:=reval('plus.d);
+return d;
+end;
+%------------------------------------------------
+%The renormalized form of field.
+%------------------------------------------------
+symbolic procedure substitution_of_fields(a);
+begin scalar c,d,d1,d2,f;
+f:=for each x in rloop collect list('expt,car(x),2);
+f:=reval('times.f);
+c:=getml1(car(a),car(renorma_constant_multilist));
+if null(c) then d:=list(a) else
+if car(c)=1 then <<
+      d1:=for each x in cdr(c) collect list(list(car(a).car(x)),cadr(x));
+      d:=for each x in d1 collect  if caaar(x)=cdaar(x)  then list('times,list('sqrt,cadr(x)),sublis(car(x),a)) 
+          else list('times,list('plus,list('sqrt,cadr(x)),list('minus,1)),sublis(car(x),a));
+>> else if car(c)=2 then <<
+      d1:=cdr(c);
+      d2:=cdr(getml1(car(a),lr_state));
+      d2:=for i:=1:length(d1) collect list('times,if nth(d2,i)='l then wydpl else wydpr,list('sqrt,cadr(nth(d1,i))));
+      d2:=reval('plus.d2);
+      if cadr(a)=1 then d2:=d2 else d2:=reval(left_right_operator_change_eachother(d2));
+      d:=list(reval(list('times,d2,a)));
+>> else if car(c)=3 then <<
+    d1:=cadr(cadr(c));
+    d:=list(list('times,list('sqrt,d1),a));
+>>;
+return d;
+end;
+%--------------------------------------------------------------
+%Change "1-g(l,a)" to "1+g(l,a)" vice versa the "1+g(l,a)".
+%-------------------------------------------------------------
+symbolic procedure left_right_operator_change_eachother(a);
+for each x in a collect if atom(x) then x else
+if car(x)='g then list('minus,x)
+else left_right_operator_change_eachother(x);
+%------------------------------------------------------------------
+%The coupling constant of vertex "a".
+%------------------------------------------------------------------
+symbolic procedure vertex_coupling_zero_all(a);
+if null(car(a)) then 1 else
+begin scalar c,c1,c2;
+for each x in midhtionlist do <<
+      for each y in cdr(x) do <<
+         if member(car(a),cdr(y)) then <<
+            c1:=car(x);
+            c2:=car(y);
+         >>;
+      >>;
+>>;
+if atom(c1) then c:=reval(list('expt,c1,c2)) else <<
+      c:=for i:=1:length(c1) collect list('expt,nth(c1,i),nth(c2,i));
+      c:=reval('times.c);
+>>;
+return c;
+end;
+
+%-------------------------------------------------------------------
+%The coupling constant of vertex "a" which should be renormalized.
+%-------------------------------------------------------------------
+symbolic procedure vertex_coupling_zero(a);
+if null(car(a)) then 1 else
+begin scalar c,c1,c2,d,f;
+for each x in midhtionlist do <<
+      for each y in cdr(x) do <<
+         if member(car(a),cdr(y)) then <<
+            c1:=car(x);
+            c2:=car(y);
+         >>;
+      >>;
+>>;
+if atom(c1) then c:=list(list('expt,c1,c2)) 
+else c:=for i:=1:length(c1) collect list('expt,nth(c1,i),nth(c2,i));
+d:=for each x in rloop collect car(x);
+for each x in c do if member(cadr(x),d) then f:=x.f;
+f:=reval('times.f);
+return f;
+end;
+
+%------------------------------------------------------------------
+%The coupling constant of loop vertex "a".
+%------------------------------------------------------------------
+symbolic procedure vertex_coupling_oneloop(a);
+begin scalar c;
+c:=vertex_coupling_zero_all(a);
+c:=reval(list('times,rloop1,c));
+return c;
+end;
+
+%-----------------------------------------------------------------
+%Change vertex coupling to the form same as "rloop".
+%-----------------------------------------------------------------
+symbolic procedure coupling_rloop_form(a);
+begin scalar b,c;
+if car(a)='times then b:=cdr(a) else b:=list(a);
+c:=for each x in b collect if atom(x) then x.1 else cadr(x).caddr(x);
+return c;
+end;
+
+%-----------------------------------------------------
+%The vertex at least one fields would be renormalized.
+%-----------------------------------------------------
+symbolic procedure vertex_oneparticle();
+begin scalar a,b,c;
+for each x in htionl do <<
+      a:=nil;
+      b:=for each y in cadr(x) collect car(y);
+      for each y in b do 
+          if member(y,car(wydrenorma_list)) then a:=1;
+      if a=1 then c:=x.c;
+>>;
+return c;
+end;
+
+%----------------------------------------------------
+%The vertex all the fields would be renormalized.
+%---------------------------------------------------
+symbolic procedure vertex_allparticle();
+begin scalar a,b,c;
+for each x in htionl do <<
+      a:=nil;
+      b:=for each y in cadr(x) collect car(y);
+      for each y in b do 
+          if not(member(y,car(wydrenorma_list))) then a:=1;
+      if null(a) then c:=x.c;
+>>;
+return c;
+end;
+
+%-----------------------------------------------------
+%The vertex at least one fields would be renormalized.
+%-----------------------------------------------------
+symbolic procedure propa_oneparticle();
+begin scalar a,b,c;
+for each x in vertex2_list1 do <<
+      a:=nil;
+      b:=for each y in car(x) do 
+         if member(car(y),car(wydrenorma_list)) then a:=1;
+      if a=1 then c:=x.c;
+>>;
+return c;
+end;
+
+symbolic procedure substitution_of_coupling();
+begin scalar a,b;
+a:=for each x in rloop collect car(x);
+for each x in paramlist do if member(car(x),a) then b:=(car(x).cadr(x)).b;
+return b;
+end;
+
+%------------------------------------------------------------------------------------------------------------
+%The output is the counterterm of sin(thete) and cos(theta) with the result is expressed with sin,cos and wm.
+%-------------------------------------------------------------------------------------------------------------
+symbolic procedure wdfcs();
+begin scalar ru,a0,a1,a2,b1,b2,c1,c2,f; 
+a0:=reval(list('expt,caar(rloop),2));
+f:=reval(list('quotient,cdar(rloop),2));
+for each x in paramlist do << 
+   if not(atom(cadr(x))) and caadr(x) memq '(acos asin) then << 
+       a1:=list('cos,car(x));
+       b1:=reval(list('cos,cadr(x))); 
+       wyd8:=(a1.b1).wyd8;
+ 
+       b1:=sublis(wyd4,b1); 
+       b1:=sublis(wydrenorma_constant_list_higher,b1);
+       c1:=vertex_order_retain(b1,a0,f); 
+       c1:=reval(list('quotient,c1,a0));
+       a2:=list('sin,car(x));
+       b2:=reval(list('sin,cadr(x)));  
+       wyd8:=(a2.b2).wyd8;
+       wyd8:=for each y in wyd8 collect car(y).reval(vertex_order_retain1(cdr(y)));
+
+       b2:=sublis(wyd4,b2); 
+       b2:=sublis(wydrenorma_constant_list_higher,b2);
+       c2:=vertex_order_retain(b2,a0,f); 
+       c2:=reval(list('quotient,c2,a0));
+       c1:=reval(vertex_order_retain1(sublis(wyd5,c1)));
+       c1:=reval(algebraic(trigsimp(symbolic(c1),compact)));
+       c2:=reval(vertex_order_retain1(sublis(wyd5,c2)));
+       algebraic(write "c1=",c1);
+       algebraic(write "c2=",symbolic(c2));
+       ru:=list(a1,c1).ru; 
+       ru:=list(a2,c2).ru; 
+    >>;
+>>;  
+return ru;
+end;
+
+
+%-------------------------------------------------
+%Renormalized form of parameter in vertex.
+%-------------------------------------------------
+symbolic procedure substitution_of_parameter(a);
+begin scalar b,c;
+b:=for each x in rloop collect list('expt,car(x),1);
+b:=reval('times.b);
+for each x in cadr(a) do 
+    c:=(car(x).list('times,car(x),cadr(nth(x,3)))).c;
+for each x in caddr(a) do c:=(car(x).list('quotient,cadr(x),b)).c;
+for each x in nth(a,4) do  c:=(car(x).list('times,car(x),cadr(x))).c;
+return c;
+end;
+
+symbolic procedure substitution_of_otherparameter();
+begin scalar c,d;
+d:=for each x in rloop collect car(x);
+for each x in paramlist do if not(member(car(x),d)) then c:=(car(x).cadr(x)).c;
+return c;
+end;
+
+%---------------------------------------------------------
+%The list where Replaced "ge" and "zm" to "g" and "wm".
+%(Because we express vertex feynmanrules by "g" and "wm",so
+%we express counterterm feynmanrules with "g" and "wm".)
+%---------------------------------------------------------
+symbolic procedure substitution_of_new_phy();
+if null(expriment_easy_list) then nil else 
+begin scalar a,b,c;
+a:=for each x in expriment_easy_list collect nth(x,4);
+a:='list.a;
+b:=for each x in paramlist collect list('equal,car(x),cadr(x));
+b:='list.b;
+c:=algebraic(solve(symbolic(b),symbolic(a)));
+c:=reval(c);
+if caadr(c)='list then c:=cdadr(c) else c:=list(cadr(c));
+c:=for each x in c collect cadr(x).caddr(x);
+return c;
+end;
+
+
+%-------------------------------------------------------------------------------
+%Input:a:vertex with the renormalized lagrangian and counterterm with all order.
+%      b:loop_one.
+%Output:The "g.2" order counterterm and include the parameter "(expt g 2)".
+%------------------------------------------------------------------------------
+algebraic procedure vertex_order_retain(a,b,bb);
+begin scalar c,d;
+d:={b=>cc,abs(~x) => x when notminus(x) };
+c:=(a where d);
+c:=sub(cc=0,df(c,cc,bb));
+c:=trigsimp(c,compact);
+c:=(c where d);
+c:=c*b**bb;
+return c;
+end;
+
+algebraic procedure vertex_order_retain1(a);
+begin scalar b;
+a:=trigsimp(a,compact);
+b:={abs(~x) => x when notminus(x)};
+a:=(a where b);
+%a:=compact(a,symbolic(wydtrigonometric_equation));
+return a;
+end;
+
+%------------------------------------------------------------------------------------------
+%This is the rule list that the value of the derivative of trigonometric function to "cc"
+%------------------------------------------------------------------------------------------
+algebraic procedure trigonometric_rule1(c);
+begin scalar d1,d2,d3,d4,d5;
+d5:={};
+while length(c)>0 do <<
+       d1:=first(c);
+       d2:=first(d1);
+       d3:=second(d1);
+       c:=rest(c);
+       d4:={df(d2,cc,loop_order)=>d3};
+       d5:=append(d4,d5);
+>>;
+return d5;
+end;
+
+%-------------------------------------------------------------------------------------------
+%The value that "a" takes a derivative with respect to "b" and where satisfying
+%trigonometric_rule1 that "cc"="b".Final,we product the value with "b".
+%-------------------------------------------------------------------------------------------
+algebraic procedure trigonometric_rule(a,b);
+begin scalar d,d1,d2,d3,d4,d5,f;
+d:={b=>cc,abs(~x) => x when notminus(x)};
+f:=(a where d);
+f:=(df(f,cc,loop_order) where wyd7);
+f:=sub(cc=0,f);
+f:=(f where d);
+f:=trigsimp(f,compact);
+f:=f*b**loop_order;
+return f;
+end;
+
+%---------------------------------------------------------------------------------------
+%---------------------------------------------------------------------------------------
+%The following procedure is for producing the input of the one-loop feynman graph 
+%calculation.
+%---------------------------------------------------------------------------------------
+symbolic procedure propa_interface();
+begin scalar a;
+for each x in vertex2_list do if member(caaar(x),car(wydrenorma_list)) then a:=list(car(x),rloop).a;
+return a;
+end;
+
+symbolic procedure propa_transition();
+begin scalar c,c1,d,d1,f,f1;
+for each x in car(wydrenorma_list) do if not(freeof(bosonmix,x)) then c:=x.c;
+for each x in bosonmix do if member(caar(cadr(x)),c) then c1:=caadr(x).c1;
+for each x in vertex2_list1 do if caaar(x)=car(cadar(x)) then d1:=x.d1;
+for each x in d1 do if member(caaar(x),c) then d:=x.d;
+if length(d)<=1 then nil
+else for each x in c1 do <<
+    f1:=propa_transition1(x,d);
+    f:=append(f,f1);
+>>;
+return f;
+end;
+
+symbolic procedure propa_transition1(a,b);
+begin scalar c,d,d1,d2,f,f1,f2;
+c:=rloop;
+for each x in b do if caaar(x)=car(a) then d1:=x;
+for each x in b do if caaar(x)=cadr(a) then d2:=x;
+f1:=list(list(caar(d1),cadar(d2)),c);
+f2:=list(list(caar(d2),cadar(d1)),c);
+return list(f1,f2);
+end;
+
+symbolic procedure vertex_interface();
+begin scalar a,b,c,d,d1,d2,f;
+a:=vertex_allparticle();
+for each x in car(wydrenorma_list) do if not(freeof(expriment_easy_list,x)) then b:=x.b;
+for each x in a do <<
+     c:=for each y in cadr(x) collect car(y);
+     if common_list1(b,c) then d:=x;
+>>;
+if null(d) then <<
+     c:=vertex_interface1(a);
+     d:=car(c);
+>>;
+f:=vertex_coupling_oneloop(d);
+f:=coupling_rloop_form(f);
+for each x in cadr(d) do if member(car(x),wydgauge_boson) then d1:=x.d1 else d2:=x.d2;
+d:=list(car(d),append(d2,d1));
+d:=list(d,f);
+return list(d);
+end;
+
+symbolic procedure vertex_interface1(a);
+begin scalar b,c,d,f,m;
+for each x in a do if length(cadr(x))=3 then b:=x.b;
+for each x in b do <<
+     c:=0;
+     d:=for each y in cadr(x) collect car(y);
+     m:=getml1('sf,splist);
+     for each y in d do if member(y,m) then c:=c+1;
+     if c=2 then f:=x.f;
+>>;
+return f;
+end;
+
+
+%---a and b has same element and length---
+symbolic procedure common_list(a,b);
+begin scalar c,d;
+for each x in a do if not(member(x,b)) then c:=1;
+for each x in b do if not(member(x,a)) then c:=1;
+if length(a)=length(b) and null(c) then d:=1; 
+return d;
+end;
+
+%-----a has same element with b ---------
+symbolic procedure common_list1(a,b);
+begin scalar c,d;
+for each x in a do if not(member(x,b)) then c:=1;
+for each x in b do if not(member(x,a)) then c:=1;
+if null(c) then d:=1; 
+return d;
+end;
+
+%------------------------------------------------------------------------------------------
+%This function is also a scheme to produce the counterterm of bare lagrangian.
+%Virtue:less time for produce the counterterm.
+%Disadvantage:It can't produce counterterm for the vertex which contain the fermion.
+%Structure:We would add a level in the derivation process compare to vertex_counterter_list1.
+%Input:a--list(coupling constant,feynmanrule without coupling,fields),b--the variable and 
+%their order which we would derivative.
+%-------------------------------------------------------------------------------------------
+symbolic procedure vertex_counterterm_new(a,b);
+begin scalar cc,c,d,f,ff;
+a:=sublis(gcoup_list,a);
+cc:=for each x in b collect factorial(cdr(x));
+cc:=reval('times.cc);
+c:=for i:=1:length(a) collect mkid('lev,i).nth(a,i);
+f:=for each x in c collect car(x);
+d:=for each x in b collect car(x);
+wyd_taylor_expansion_depend('list.f,'list.d);
+f:='times.f;
+for each x in b do f:=reval(vertex_order_retain_more1(f,car(x),cdr(x)));
+
+ff:=vertex_counterterm_new1(f,c);
+ff:=rsublis(gcoup_list,ff);
+ff:=reval(list('quotient,ff,cc));
+ff:=reval(sublis(r_ksi_value,ff));
+if not(ff=0) then w_w_put_in_hhlist(ff,1,2);
+end;
+
+symbolic procedure vertex_counterterm_new1(a,b);
+begin scalar c,d,f;
+a:=vertex_counterterm_new2(a,b);
+d:=for each x in b collect car(x).reval(sublis(wydrenorma_constant_list_zero,cdr(x)));
+a:=sublis(d,a);
+c:=list('gg.'g);
+a:=reval(sublis(append(c,wyd5),a));
+a:=vertex_order_retain1(a);
+f:=expression_of_rloop();
+a:=reval(list('times,a,f));
+return a;
+end;
+
+symbolic procedure vertex_counterterm_new2(a,b);
+if atom(a) then a else 
+if car(a)='df then vertex_counterterm_new2_1(a,b) else
+for each x in a collect vertex_counterterm_new2(x,b);
+
+symbolic procedure vertex_counterterm_new2_1(a,b);
+begin scalar c;
+c:=wydrenorma_list;
+c:=reval(sublis(b,a));
+c:=vertex_counterterm_list5(c);
+
+c:=reval(sublis(wydrenorma_constant_list_zero,c));
+return c;
+end;
+%------------------------------------------------------------------------------------------
+%Judgement procedure:if vertex contain fermion then 1 else nil.
+%------------------------------------------------------------------------------------------
+symbolic procedure fermion_if_or_not(a);
+begin scalar b;
+for each x in a do if member(car(x),pflist) then b:=1;
+return b;
+end;
+
+%------------------------------------------------------------------------------------------
+%For simplify to compare the result of different versions of renormalization,we had better
+%to unify to form of out put.This function is here for that make the vertex of counterterm
+%in the list rank in by some rules.
+%Rules:(1)If a vertex which contain the fields are not the eigen state of SU(2),i.e.,there 
+%exit mixing relation with other fields,then its counterterm would have at least two kind 
+%vertex,we would always let the counterterm which has the same form as leading order in front
+%of others.
+%Input:a--the leading order vertex fields. b--the counterterm nlo.
+%------------------------------------------------------------------------------------------
+symbolic procedure counterterm_in_order(a,b);
+if atom(b) then b else 
+begin scalar c,d,d1,d2,d3,d4,f;
+for each x in bosonmix do c:=append(caadr(x),c);
+for each x in c do if not(freeof(a,x)) then d:=1;
+if d then <<
+    if car(b)='quotient then d1:=caddr(b) else d1:=1;
+    if car(b)='quotient then d2:=cadr(b) else d2:=b;
+    if car(d2)='plus then <<
+        for each x in cdr(d2) do <<
+            f:=nil;
+            for each y in a do if freeof(x,y) then f:=1;
+            if f then d3:=x.d3 else d4:=x.d4;
+        >>;
+    >> else symerr("wrong in counterterm_in_order",nil);
+    d4:=list(d4,d3);
+    b:=for each x in d4 collect reval(list('quotient,'plus.x,d1));    
+>> else b:=list(b);
+return b;
+end;
+
+
+%==========================Module 3 end==================================================)
+
+%(==========================Module 4======================================================
+%This part is to generate the value of the renormaliation constant.
+%=========================================================================================
+symbolic procedure counterterm_generate1(a,b12);
+if null(a) then nil else
+begin scalar b1,b2,b3,b4,d3,d4,d5,d6; 
+propa_residue_list:=nil;
+b1:=car(b12);
+b2:=cadr(b12);
+if member(car(nth(a,3)),ms_list) then re_scheme_cons:=1 else re_scheme_cons:=2;
+b3:=add_renorma_scheme_v(b2);
+b4:=add_renorma_scheme0(b1,splist);
+
+d5:=tadpole_counterterm_generate(b4);
+d4:=add_propa_counterterm_generate(b4,a,d5);
+if null(nth(wydrenorma_list,6)) then nil else d6:=angle_counterterm_generate(d4);
+d3:=vertex_counterterm_generate(b3,d4);
+b1:=propa_residue_list;
+d4:=append(append(d3,d6),append(d4,d5));
+d4:=for each x in d4 collect car(x).reval(sublis(r_ksi_value,cdr(x)));
+
+%d4:=for each x in d4 collect car(x).reval(sublis(r_ksi_value,cdr(x)));
+%check_kk(d4);
+d4:=for each x in d4 collect car(x).simplify_theta_mz(cdr(x));
+d4:=counterterm_generate2(d4);
+%---this value not change any more--
+countertermlist:=d4;
+end;
+
+symbolic procedure simplify_theta_mz(a);
+reval(algebraic(a where {sin(theta)^2=>1-cos(theta)^2,cos(theta)=>wm/zm}));
+
+symbolic procedure tadpole_counterterm_generate(a);
+begin scalar b,c,c1,d,f1,f2;
+for each x in a do if length(caar(x))=1 then b:=x.b;
+for each x in b do <<
+    c1:=caaaar(x);
+    if freeof(bosonmix,c1) then c:=x.c else d:=x.d;
+>>;
+f1:=tadpole_counterterm_generate1(c);
+f2:=tadpole_counterterm_generate2(d);
+return append(f1,f2);
+end;
+
+%--Generate the counterterm of tadpole which corresponding  no-mixing higgs---
+symbolic procedure tadpole_counterterm_generate1(a);
+if null(a) then nil else
+begin scalar b,c,d;
+for each x in a do <<
+    b:=caaaar(x);
+    c:=par1(b,ctadpole_list);
+    c:=par1(c,nth(renorma_constant_addlist,3));
+    d:=(c.cadr(x)).d
+>>;
+return d;
+end;
+
+%%tadpole of two higgs----
+%--Generate the counterterm of tadpole which corresponding  mixing higgs---
+symbolic procedure tadpole_counterterm_generate2(a);
+if null(a) then nil else
+begin scalar b,b1,b2,b3,b4,b5,b6,c,d,f;
+d:=tadpole_counterterm_generate1(a);
+c:=for each x in a collect caaaar(x);
+for each x in bosonmix do if member(caaadr(x),c) then b:=x.b;
+for each x in b do <<
+    b1:=par1(car(x),matrixlist);
+    b1:='mat.b1;
+    b2:=caadr(x);
+    b2:=for each xx in b2 collect list(xx);  
+    b2:='mat.b2;
+    b3:=algebraic(tp(b1)*b2); 
+
+    b5:=for each xx in ctadpole_list collect car(xx).cadr(xx);
+    b6:=for each xx in nth(renorma_constant_addlist,3) collect car(xx).cadr(xx);
+    b5:=sublis(b6,b5);
+    b3:=for each x in cdr(b3) collect for each y in x collect reval(y);
+    b3:=for each xx in b3 collect car(xx);
+    b3:=sublis(b5,b3);
+    b3:=for i:=1:length(b3) collect cdr(nth(b5,i)).reval(sublis(d,nth(b3,i)));
+    f:=append(f,b3);
+>>;
+return f;
+end;
+
+
+symbolic procedure angle_counterterm_generate(a);
+begin scalar b,c,d,d1,f;
+for each x in nth(wydrenorma_list,6) do <<
+    for each y in matrixlist do 
+        if not(freeof(y,x)) then b:=y;
+    for each y in bosonmix do if car(y)=car(b) then b:=y;
+    d:=angle_counterterm_generate1(caadr(b),a);
+    d1:=par1(x,nth(renorma_constant_addlist,4));
+    f:=(d1.d).f;
+>>;
+return f;
+end;
+
+symbolic procedure angle_counterterm_generate1(a,b);
+begin scalar c,d,c1,d1,f;
+for each x in car(renorma_constant_addlist) do if car(x)=car(a) then c:=x;
+for each x in nth(c,3) do if not(car(x)=car(a)) then d:=reval(list('times,2,cadr(x)));
+for each x in car(renorma_constant_addlist) do if car(x)=cadr(a) then c1:=x;
+for each x in nth(c1,3) do if not(car(x)=cadr(a)) then d1:=reval(list('times,2,cadr(x)));
+f:=list('quotient,list('plus,d,list('minus,d1)),4);
+f:=reval(sublis(b,f));
+return f;
+end;
+
+
+
+symbolic procedure check_kk(a);
+begin scalar b,c,c1,c2;
+b:=getml1('w,wydgauge_boson_fixing1);
+c:=getml1('z,wydgauge_boson_fixing1);
+b:=getml1(b,a);
+c:=getml1(c,a);
+c:=sublis(c1,c);;
+c1:=reval(algebraic(wm/cos(theta)));
+c1:=list('zm.c1);
+c:=sublis(c1,c);
+c:=reval(list('plus,b,list('minus,c)));
+c:=reval(algebraic(trigsimp(symbolic(c))));
+%c:=reval(algebraic(compact(symbolic(c),wydtrigonometric_equation)));
+if c=0 then symerr("ok",nil) else symerr("not ok",nil);
+
+end;
+
+symbolic procedure algebraic_value_show(a);
+begin scalar b;
+for each x in a do if caaaar(x)='nue  then b:=cadr(x).b;
+return b;
+end;
+%---------------------------------------------------
+%Date processing of the one-loop result of the vertex.
+%---------------------------------------------------
+symbolic procedure add_renorma_scheme_v(a);
+for each x in a collect  add_renorma_scheme_v1(x);
+
+symbolic procedure add_renorma_scheme_v1(a);
+begin scalar b;
+b:=caadr(a);
+%if re_scheme_cons=1 then b:=add_ms_renorma_scheme1(b);
+return list(car(a),b);
+end;
+
+%---------------------------------------------------------
+%Date processing of the one-loop result of the propagator.
+%---------------------------------------------------------
+symbolic procedure add_renorma_scheme0(a,b);
+if gauge_symmetric_scheme=1 then before_ssb_add_renorma_scheme(a,b) 
+else  add_renorma_scheme(a,b);
+%else symerr("wrong in add_renorma_scheme0",nil);
+
+%-------------------------------------------------------
+%The on-shell renormalization scheme before SSB.
+%-------------------------------------------------------
+symbolic procedure before_ssb_add_renorma_scheme(a,b);
+begin scalar c,f0,f1,f2,f3,ff;
+for each x in a do <<
+    c:=particle_type1(caaaar(x),b);
+    if length(caar(x))=1 then f0:=x.f0 else 
+    if c='psi then f1:=x.f1 else
+    if c='b1 then f2:=x.f2 else 
+    if c='b0 then f3:=x.f3 else
+    symerr("wrong in before_ssb_add_renorma_scheme",nil);
+>>;
+f0:=for each x in f0 collect add_onsh_renorma_scheme(x,b);
+f1:=su2_fermion_add_renorma_scheme(f1,b);
+f2:=su2_gauge_add_renorma_scheme(f2,b);
+f3:=su2_higgs_add_renorma_scheme(f3,b);
+ff:=append(f0,append(append(f1,f2),f3));
+return ff;
+end;
+
+symbolic procedure su2_fermion_add_renorma_scheme(a,b);
+begin scalar c,c1,c2,d1,d2,d3,d4,d5,f1,f2,f3,f5,f6;
+c:=su2_fermion_doublet();
+c1:=for each x in c collect car(x);
+c2:=for each x in c collect cadr(x);
+for each x in c do <<
+      for each y in a do if caaaar(y)=cadr(x) then d1:=y else if caaaar(y)=car(x) then d2:=y;
+      d3:=add_renorma_scheme1(d1,b);
+      f6:=d3.f6;
+      d4:=add_renorma_scheme1(d2,b);
+      f1:=car(cadr(d3));
+      f3:=nth(cadr(d4),3);
+      f2:=list('plus,f1,car(cadr(d2)),list('minus,car(caddr(d2))));
+      f2:=reval(f2);
+      d5:=list(car(d4),list(f1,f2,f3));
+      f6:=d5.f6;
+      f5:=find_mass(car(x)); 
+      f5:=list('plus,f1,list('minus,car(cadr(d4))));
+      f5:=list(car(d2),reval(list('minus,f5)));
+      propa_residue_list:=f5.propa_residue_list;
+      
+>>;
+return f6;
+end;
+
+symbolic procedure su2_fermion_doublet();
+begin scalar a,b,b1,b2,b3,b4,c;
+a:=cdr(pchalist);
+for each x in a do if not(freeof(pflist,cadr(x))) and length(x)=4 then b:=x.b;
+c:=for each x in b collect list(car(nth(x,3)),car(nth(x,4)));
+
+for each x in c do <<
+    b1:=getml1(car(x),fermion_generation);
+    b2:=getml1(cadr(x),fermion_generation);
+    b3:=for i:=1:length(b1) collect list(nth(b1,i),nth(b2,i));
+    b3:=x.b3;
+    b4:=append(b3,b4);
+>>;
+return b4;
+end;
+
+symbolic procedure su2_gauge_add_renorma_scheme(a,b);
+begin scalar c0,c,d,d1,c1,c2,c3,c4,c5,c6,c7,c8,c9,f1,f2,f3,cc1,cc2,cc3,cc4,
+             ff1,ff2,ff3,ff4,ff5,ff6,ff7,dd1,dd2,dd3,dd4,dd5,dd6,dd7,
+             dd8,dd9,dd10,dd,expr1,expr2,expr3,expr4,kk,kk1,kk2;
+c0:=for each x in rloop collect list('expt,car(x),cdr(x));
+c0:=reval('times.c0);
+c:=wydtrigono_re;
+d:=for each x in c collect list(car(x),mkid('del,mkid(caar(x),cadar(x))));
+d1:=for each x in d collect list('times,car(x),cadr(x));
+d1:=reval('plus.d1);
+f3:=algebraic(solve(symbolic(d1)=0,symbolic(cadr(car(d)))));
+f1:=for each x in d collect car(x).list('plus,car(x),list('times,c0,cadr(x)));
+f2:=for i:=1:length(c) collect cadr(nth(d,i)).cadr(nth(c,i));
+%--f2 is the value of the counterterm of the trigonometric function.--
+%--matrix construction--
+for each x in bosonmix do
+      for each y in cdr(x) do if member(caar(y),wydgauge_boson) then c1:=list(car(x),y); 
+c2:=par1(car(c1),matrixlist);
+c2:='mat.c2;
+%%--(c2 is the zero mixing matrix of gauge boson)----
+expr4:=su2_gauge_add_renorma_scheme3(c2,cadr(c1));
+c4:=reverse_of_matrix(c2);
+c2:=sublis(f1,c2);
+c3:=for each x in cadr(cadr(c1)) collect if atom(x) then x else car(x);
+c5:=for each x in c3 collect mkid('delz,x);
+c9:=for i:=1:length(c5) collect list(nth(c3,i),nth(c5,i));
+c6:=for each x in c5 collect list('plus,1,list('quotient,list('times,c0,x),2));
+c6:=construction_of_diagonal_matrix(c6);
+c6:='mat.c6;
+c7:=algebraic(symbolic(c2)*symbolic(c6)*symbolic(c4));
+c7:=reval_of_matrix(c7);
+c8:=for each x in cdr(c7) collect for each y in x collect reval(list('quotient,vertex_order_retain(y,c0,1),c0));
+c8:=for each x in c8 collect for each y in x collect reval(algebraic(sub(symbolic(f3),symbolic(y))));
+c8:=car(c7).c8;
+cc1:=renorma_constant_addlist;
+cc2:=caadr(c1);
+for each x in cc2 do <<
+      cc3:=getml1(x,car(cc1));
+      cc3:=for each y in cc2 collect par1(y,cadr(cc3));
+      cc4:=cc3.cc4;
+>>;
+cc4:='mat.reverse(cc4);
+for each x in wydrenorma_constant_list do if not(freeof(cc4,x)) then ff1:=x.ff1;
+ff2:=equations_from_two_matrix(c8,cc4);
+ff3:=algebraic(solve(symbolic(ff2),symbolic('list.ff1)));
+dd1:=for each x in a collect add_renorma_scheme1(x,b);
+for each x in dd1 do << 
+      dd2:=find_mass(caaaar(x));
+      if dd2=0 then dd3:=x.dd3 else dd4:=x.dd4;
+>>;
+for each x in dd3 do <<
+      dd7:=for each y in caar(x) collect car(y);
+      dd5:=getml1(cadr(dd7),car(cc1));
+      dd5:=par1(car(dd7),cadr(dd5));
+      dd5:=reval(list('times,2,dd5));
+      dd6:=dd5.dd6;
+      expr1:=(dd5.caadr(x)).expr1;
+>>;
+expr2:=su2_gauge_add_renorma_scheme2(dd4,cc1);
+for each x in cdadr(ff3) do if member(cadr(x),dd6) then ff4:=x.ff4 else ff6:=x.ff6;
+%dd:=for each x in ff4 collect list(cadr(x),reval(caddr(x)));
+ff5:=algebraic(solve(symbolic('list.ff4),symbolic('list.c5)));
+ff7:=wydgauge_boson;
+for each x in dd4 do <<
+      dd7:=for each y in caar(x) collect car(y);
+      dd5:=getml1(cadr(dd7),car(cc1));
+      if car(dd5)=1 then dd5:=par1(car(dd7),cadr(dd5)) else 
+      if car(dd5)=3 then dd5:=par1(car(dd7),cdr(dd5)) else
+      symerr("wrong in su2_gauge",nil);
+      dd5:=reval(list('times,2,dd5));
+      if freeof(bosonmix,car(dd7)) then dd9:=list(car(dd7),dd5).dd9;
+      dd7:=list(car(x),dd5.cdadr(x));
+      if caar(caar(x))=caadr(caar(x)) then dd:=list(car(x),list('plus,list('minus,dd5),caadr(x))).dd;
+      dd8:=dd7.dd8;
+      if caar(caar(x))=caadr(caar(x)) then  <<
+          kk1:=getml1(caaaar(x),wydgauge_boson_fixing1);
+          kk1:=kk1.nth(cadr(x),3);
+          kk:=kk1.kk;
+      >>;
+>>;
+for each x in dd9 do <<
+      for each y in cdr(pchalist) do if not(freeof(y,car(x))) then dd7:=y;
+      dd7:=cadr(dd7);
+      dd5:=par1(dd7,c9);
+      dd10:=(cadr(x).dd5).dd10;
+>>;
+expr3:=for each x in cdadr(ff5) collect cadr(x).reval(algebraic(compact(symbolic(caddr(x)),symbolic(wydtrigonometric_equation))));
+ff6:=for each x in ff6 collect cadr(x).reval(caddr(x));
+%reval(algebraic(compact(symbolic(caddr(x)),symbolic(wydtrigonometric_equation))));
+ff6:=sublis(expr3,ff6);
+dd10:=sublis(expr3,dd10);
+dd10:=append(dd10,ff6);
+dd10:=sublis(f2,dd10);
+dd10:=for each x in dd10 collect car(x).reval(algebraic(compact(symbolic(cdr(x)),symbolic(wydtrigonometric_equation))));
+dd10:=sublis(append(expr1,expr2),dd10);
+dd8:=sublis(dd10,dd8);
+dd:=sublis(dd10,dd);
+dd:=for each x in dd collect list(car(x),reval(cadr(x)));
+for each x in dd3 do <<
+      if caar(caar(x))=caadr(caar(x)) then <<
+          kk1:=getml1(caaaar(x),wydgauge_boson_fixing1);
+          kk1:=sublis(expr4,kk1);
+          kk1:=reval(sublis(kk,kk1));
+          kk2:=list(car(x),reverse(kk1.cdr(reverse(cadr(x))))).kk2;
+      >> else kk2:=x.kk2;
+>>;
+propa_residue_list:=append(propa_residue_list,dd);
+dd8:=append(dd8,kk2);
+return dd8;
+end;
+
+symbolic procedure su2_gauge_add_renorma_scheme2(a,b);
+begin scalar c,d,f;
+for each x in a do if caar(caar(x))=caadr(caar(x)) then c:=x.c;
+for each x in c do <<
+     d:=caaaar(x);
+     d:=find_mass(d);
+     d:=getml1(d,cadr(b));
+     d:=cadr(cadr(d));
+     d:=d.cadr(cadr(x));
+     f:=d.f;
+>>;
+return f;
+end;
+
+%---------------------------------------------------------------------------------------
+%This procedure duals with the relation of gauge fixing renormalization constant between 
+%the scheme before and after SSB.
+%Input:mixing matrix of gauge boson and gauge boson.
+%---------------------------------------------------------------------------------------- 
+symbolic procedure su2_gauge_add_renorma_scheme3(a,a1);
+begin scalar b,b1,b2,b3,c,d,d1,d2,f1,f2,f,ff;
+b:=for each x in cdr(a) collect 
+      for each y in x collect reval(list('expt,y,2));
+b:=car(a).b;
+b1:=for each x in a1 collect 
+      for each y in x collect if atom(y) then y else car(y);
+b2:=for each x in car(b1) collect list(getml1(x,wydgauge_boson_fixing1));
+b2:='mat.b2;
+c:=for each x in cadr(b1) collect x.mkid(mkid('delz,'ksi),x);
+b3:=for each x in c collect list(cdr(x));
+b3:='mat.b3;
+b3:=reval(algebraic(symbolic(b)*symbolic(b3)));
+b3:=equations_from_two_matrix(b2,b3);
+for each x in wydgauge_boson_fixing1 do if freeof(b1,car(x)) then d:=x.d;
+for each x in d do <<
+      for each y in cdr(pchalist) do if not(freeof(y,car(x))) then d1:=cadr(y);
+      d2:=list('equal,cdr(x),getml1(d1,c)).d2;
+>>;
+b3:=append(b3,d2);
+for each x in wydgauge_boson_fixing1 do if find_mass(car(x))=0 then f1:=cdr(x).f1;
+f:=for each x in c collect cdr(x);
+f:=append(f,f1);
+ff:=algebraic(solve(symbolic(b3),symbolic('list.f)));
+ff:=for each x in cdadr(ff) collect cadr(x).reval(algebraic(compact(symbolic(caddr(x)),wydtrigonometric_equation)));
+return ff;
+end;
+%--------------------------------------------
+%The inverse matrix of input matrix.
+%-------------------------------------------
+symbolic procedure reverse_of_matrix(a);
+begin scalar b,c;
+b:=algebraic(1/symbolic(a));
+c:=for each x in cdr(b) collect for each y in x collect reval(algebraic(trigsimp(symbolic(y),compact)));
+c:=car(b).c;
+return c;
+end;
+
+symbolic procedure construction_of_diagonal_matrix(a);
+begin scalar b;
+b:=for i:=1:length(a) collect for j:=1:length(a) collect if j=i then nth(a,i) else 0;
+return b;
+end;
+
+symbolic procedure reval_of_matrix(a);
+begin scalar b;
+b:=for each x in cdr(a) collect for each y in x collect reval(algebraic(trigsimp(symbolic(y),compact)));
+return car(a).b;
+end;
+
+%----------------------------------------------------------
+%Let matrix "a" equal matrix "b" and we get some equations.
+%----------------------------------------------------------
+symbolic procedure equations_from_two_matrix(a,b);
+begin scalar c1,c2,d1,d2,d3,d4;
+a:=cdr(a);
+b:=cdr(b);
+c1:=length(a);
+c2:=length(car(a));
+for i:=1:c1 do for j:=1:c2 do <<
+      d1:=nth(nth(a,i),j);
+      d2:=nth(nth(b,i),j);
+      d3:=algebraic({d1=d2});
+      d4:=append(cdr(d3),d4);
+>>;
+return 'list.d4;
+end;
+
+symbolic procedure su2_higgs_add_renorma_scheme(a,b);
+begin scalar c,c1,c2,c3,f1,f2;
+c:=physical_neutral_scalar_particle();
+c:=for each x in c collect list(x,su2_higgs_add_renorma_scheme1(x));
+for each x in c do <<
+      for each y in a do if caaaar(y)=car(x) then c1:=y else
+      if member(caaaar(y),cadr(x)) then c2:=y.c2;
+      c1:=add_renorma_scheme1(c1,b);
+      c2:=for each y in c2 collect add_renorma_scheme1(y,b);
+      c3:=for each y in c2 collect list(car(y),reval(list('plus,car(cadr(y)),list('minus,car(cadr(c1))))));
+      c2:=for each y in c2 collect list(car(y),car(cadr(c1)).cdadr(y));
+      c2:=c1.c2;
+      f1:=append(c2,f1);
+      f2:=append(c3,f2);
+>>;
+propa_residue_list:=append(propa_residue_list,f2);
+return f1;
+end;
+
+symbolic procedure su2_higgs_add_renorma_scheme1(a);
+begin scalar b,c;
+for each x in cdr(pchalist) do if not(freeof(x,a)) then b:=cdr(x);
+c:=for each x in cdr(b) collect car(x);
+c:=delfc(c,a);
+return c;
+end;
+%----------------------------------------------------------------------------
+%The Renormalization scheme (include the on-shell renormalization scheme and 
+%and MS renormalization scheme) after SSB.
+%----------------------------------------------------------------------------
+symbolic procedure add_renorma_scheme(b,c);
+for each x in b collect add_renorma_scheme1(x,c);
+
+symbolic procedure add_renorma_scheme1(b,c);
+if member(caaaar(b),ms_list)  then add_ms_renorma_scheme(b) else
+if member(caaaar(b),onsh_list) then add_onsh_renorma_scheme(b,c);
+
+symbolic procedure add_ms_renorma_scheme(a);
+begin scalar b,b1;
+b:=add_onsh_renorma_scheme(a,splist);
+b1:=for each x in cadr(b) collect add_ms_renorma_scheme1(x);
+return list(car(b),b1);
+end;
+
+symbolic procedure add_ms_renorma_scheme1(a);
+begin scalar b,b1,b2,d,gg;
+if freeof(a,'des_uv) then gg:=0 
+else <<
+   if car(a)='quotient then <<
+     b1:=car(a);
+     b2:=caddr(a);
+     b:=cadr(a);
+   >> else b:=a;
+   if car(b)='plus then for each x in cdr(b) do <<
+     if not(freeof(x,'des_uv)) then d:=x.d;
+   >> else d:=b;
+   d:='plus.d;
+   if b1 then gg:=reval(list(b1,d,b2)) else gg:=d;
+>>;
+return reval(gg);
+end;
+
+symbolic procedure add_onsh_renorma_scheme(a,g);
+if length(caar(a))=1 then list(car(a),reval(list('minus,list('quotient,car(cadr(a)),'i)))) 
+else add_onsh_renorma_scheme1(a,g);
+
+symbolic procedure add_onsh_renorma_scheme1(a,g);
+begin scalar b0,b,b1,b2,b3,b4,b5,b6,c0,c,c1,c2,c3,c4;
+b:=caaaar(a);
+b1:=caadr(caar(a));
+b2:=particle_type1(b,g);
+b3:=find_mass(b);
+b0:='i;
+b4:=cadr(a);
+b4:=for each x in b4 collect reval(list('quotient,x,b0));
+if length(a)>=3 then b5:=caddr(a);
+b5:=for each x in b5 collect reval(list('quotient,x,b0));
+if length(a)>=4 then b6:=nth(a,4);
+b6:=for each x in b6 collect reval(list('quotient,x,b0));
+%--the algebraic expression of renormalizaition constant-
+if not(b=b1) then <<
+      c0:=find_mass(b1);
+      c1:=reval(list('quotient,list('times,2,car(b4)),list('plus,list('times,b3,b3),list('minus,list('times,c0,c0)))));
+      c:=list(c1,0,0);
+>> else if b2='b0 then <<
+      c1:=reval(list('minus,cadr(b4)));
+      c2:=car(b4);
+      c3:=getml1(b,tadpole_of_higgs_mass);
+      if c3 then << 
+         c3:=renorma_tadpole_higgs_mass(cadr(c3));
+         c3:=reval(list('times,2,c3));
+         c2:=list('plus,c2,c3);
+         if not(b3=0) then c2:=reval(list('quotient,c2,list('times,2,b3)));
+      >>;
+      c:=list(c1,c2);
+>> else if b2='b1 then <<
+      c1:=cadr(b4);
+      c2:=reval(list('minus,car(b4)));
+      if not(b3=0) then c2:=reval(list('quotient,c2,list('times,2,b3)));
+      c3:=getml1(b,wydgauge_boson_fixing);
+      c4:=list('times,list('plus,c3,-1),c1);
+      if b3=0 then c3:=list('plus,list('times,c3,cadr(b4)),list('minus,c4)) 
+      else c3:=list('minus,list('plus,list('times,c3,list('quotient,car(b5),list('expt,b3,2))),c4));
+      c:=list(c1,c2,c3);
+>> else if b2='psi then <<
+            if par1(caaaar(a),lr_state)=1 then <<
+                  c1:=list('plus,car(b4),list('times,b3,b3,cadr(b4)),list('times,b3,b3,cadr(b5)),list('times,2,b3,cadr(b6)));
+                  c1:=reval(list('minus,c1));
+                  c2:=list('plus,car(b5),list('times,b3,b3,cadr(b4)),list('times,b3,b3,cadr(b5)),list('times,2,b3,cadr(b6)));
+                  c2:=reval(list('minus,c2));
+                  c3:=reval(list('plus,list('times,b3,list('plus,list('quotient,list('times,car(b4)),2),list('quotient,car(b5),2))),car(b6)));
+                  c:=list(c1,c2,c3);
+            >> else <<
+                  c1:=reval(list('minus,list('plus,car(b4),list('times,2,b3,b3,cadr(b4)),list('times,2,b3,cadr(b5)))));
+                  c2:=reval(list('plus,list('times,b3,car(b4)),car(b5)));
+                  c:=list(c1,c2);
+            >>;
+>>;
+return list(car(a),c);
+end;
+
+symbolic procedure renorma_tadpole_higgs_mass(a);
+begin scalar b,c,d;
+b:=for each x in nth(renorma_constant_addlist,3) collect car(x).cadr(x);
+c:=for each x in rloop collect car(x);
+c:=reval('times.c);
+a:=reval(list('quotient,sublis(b,a),c));
+return a;
+end;
+
+%--------------------------------------------------------------------------
+%Generating results of the renormalization constants of fields and masses.
+%-------------------------------------------------------------------------
+symbolic procedure add_propa_counterterm_generate(a,b,aa);
+begin scalar b1,b2,b3,b4,c1,c2,c3;
+c1:=propa_counterterm_list0(vertex2_list,b);
+c1:=for each x in c1 collect if atom(cadr(x)) then x 
+    else append(list(car(x),reval(list('times,2,cadr(x)))),cddr(x));
+for each x in a do if length(caar(x))=2 then <<
+    b1:=caar(x);
+    b2:=list(caar(b1),caadr(b1));
+    for each y in c1 do if car(y)=b2 then b3:=cdr(y);
+    b4:=for i:=1:length(b3) collect nth(b3,i).nth(cadr(x),i);
+    for each y in b4 do if not(car(y)=0) then c2:=y.c2;
+>>;
+for each x in c2 do if not(null(car(x))) then c3:=(car(x).reval(sublis(aa,cdr(x)))).c3;
+return c3;
+end;
+
+symbolic procedure propa_counterterm_list0(a,b);
+begin scalar c,d,f;
+for each x in a do if member(caaar(x),car(b)) then c:=x.c;
+d:=renorma_constant_addlist;
+f:=propa_counterterm_list(c,d,nil);
+return f;
+end;
+ 
+symbolic procedure propa_counterterm_list(a,b,c);
+if null(a) then c else propa_counterterm_list1(a,b,c);
+
+symbolic procedure propa_counterterm_list1(a,b,c);
+begin scalar d,f;
+d:=propa_counterterm_list2(car(a),b);
+f:=counterterm_combination(d,c);
+return propa_counterterm_list(cdr(a),b,f);
+end;
+
+symbolic procedure propa_counterterm_list2(a,b);
+begin scalar c,cc,d,m,f;
+c:=caaar(a);
+for each x in car(b) do if car(x)=c then d:=x;
+m:=find_mass(c);
+if not(m=0) then << 
+      for each x in cadr(b) do if car(x)=m then f:=x;
+>>;
+if cadr(d)=1 then cc:=propa_momen1(nth(d,3),c,f) else
+if cadr(d)=2 then cc:=propa_momen2(nth(d,3),c,f) else
+cc:=propa_momen3(nth(d,3),c,f);
+return cc;
+end;
+
+symbolic procedure propa_momen1(a,b,c);
+begin scalar c1,c2,c3,c4,cc,f;
+for each x in a do << 
+    c4:=nil;
+    c1:=list(car(x),b);
+    f:=2;
+    if car(x)=b then c4:=getml1(b,wydgauge_boson_fixing1);
+    c2:=reval(list('times,f,cadr(x)));
+    if null(c) then c3:=0 else 
+    if car(x)=b then c3:=cadr(nth(c,3)) 
+    else c3:=0;
+    if c4 then cc:=list(c1,c2,c3,c4).cc 
+    else cc:=list(c1,c2,c3).cc;
+>>;
+return cc;
+end;
+
+symbolic procedure propa_momen2(a,b,c);
+begin scalar c1,c2,c3,c4,cc;
+c1:=list(b,b);
+c2:=reval(list('times,2,cadr(car(a))));
+if member(b,wydneutrino) then c3:=0 
+else c3:=reval(list('times,2,cadr(cadr(a))));
+if null(c) then c4:=0 else c4:=cadr(nth(c,3));
+cc:=list(c1,c2,c3,c4);
+return list(cc);
+end;
+
+symbolic procedure propa_momen3(a,b,c);
+begin scalar c1,c2,c3,c4,cc,f;
+f:=particle_type1(b,splist);
+c1:=list(b,b);
+c2:=reval(list('times,2,cadr(a)));
+if null(c) then c3:=0 else 
+c3:=cadr(nth(c,3));
+if member(b,wydgauge_boson) then <<
+      c4:=getml1(b,wydgauge_boson_fixing1);
+      if null(c4) then c4:=0;
+      cc:=list(c1,c2,c3,c4);
+>> else cc:=list(c1,c2,c3);
+return list(cc);
+end;
+
+
+
+symbolic procedure counterterm_combination(a,b);
+if null(a) then b else counterterm_combination1(a,b);
+
+symbolic procedure counterterm_combination1(a,b);
+begin scalar c,d,f;
+c:=car(a);
+for each x in b do if car(x)=car(c) then d:=x;
+if null(d) then f:=c.b else <<
+       f:=delone(b,d);
+       d:=counterterm_combination2(c,d);
+       f:=d.f;
+>>;
+return counterterm_combination(cdr(a),f);
+end;
+
+symbolic procedure counterterm_combination2(a,b);
+begin scalar c;
+c:=for i:=2:length(a) collect reval(list('plus,nth(a,i),nth(b,i)));
+return car(a).c;
+end;
+
+%--------------------------------------------------------------------------
+%Generating results of the renormalization constants of coupling constant.
+%-------------------------------------------------------------------------
+symbolic procedure vertex_counterterm_generate(a,b);
+begin scalar c,c1,c2,d,d1,d3,d4,d5,d6,d7;
+c1:=for each x in b collect car(x);
+c2:=hhlist;
+c2:=wydrenorma_constant_list;
+d:=vertex_counterterm_generate2(wydrenorma_constant_list,c1);
+for each x in a do <<
+    c:=for each y in cadar(x) collect list('expt,car(y),cdr(y));
+    d1:=cadr(caar(x));
+    for each y in hhlist do if common_list(car(y),d1) then d3:=cdr(y);
+    d3:=vector_gamma_matrix_coefficient(d3);
+    d3:=reval(list('times,'i,d3));
+    d4:=vertex_counterterm_generate1(x,d3);
+    d5:=wsolve(d4,d);
+    d5:=caadr(d5);
+    d5:=car(d5).reval(cdr(d5));
+    d6:=d5.d6;
+>>; 
+b:=ir_remove_for_alpha(b);
+d6:=sublis(b,d6);
+d6:=for each x in d6 collect car(x).reval(cdr(x));
+for each x in d6 do <<
+      for each y in cadr(renorma_constant_addlist) do if cadr(nth(y,3))=car(x) then c1:=car(nth(y,3));
+      if member(c1,ms_list) then d7:=(car(x).add_ms_renorma_scheme1(cdr(x))).d7
+      else d7:=x.d7;
+>>;
+%symerr("test here",nil);
+return reverse(d7);
+end;
+
+%%--------------------------------------------------------------------------------%%
+%%Usually here we just remove the IR divergence of the coupling constant of U(1), %%
+%%and the only one guage boson is photon.                                         %% 
+%%--------------------------------------------------------------------------------%%
+symbolic procedure ir_remove_for_alpha(a);
+begin scalar b,c,d,f;
+b:=renorma_constant_addlist;
+b:=coupling_to_masslessboson();
+if length(b)=1 then nil else 
+symerr("wrong in ir_remove_for_alpha for too many massless gaugeboson",nil);
+b:=car(b);
+c:=getml1(b,car(renorma_constant_addlist));
+if car(c)=3 then c:=cadr(c) else
+if car(c)=1 then c:=caadr(c) 
+else symerr("wrong in ir_remove_for_alpha",nil);
+c:=reval(list('times,2,cadr(c)));
+for each x in a do 
+    if car(x)=c then d:=x else f:=x.f;
+d:=ir_remove_for_alpha1(d);
+f:=d.f;
+return f;
+end;
+
+symbolic procedure ir_remove_for_alpha1(a);
+begin scalar b,c;
+b:=for each x in fermion_for_alpha_list collect ir_remove_part(x);
+b:='plus.b;
+c:=reval(list('plus,cdr(a),list('minus,b)));
+a:=car(a).c;
+return a;
+end;
+
+symbolic procedure ir_remove_part(a);
+begin scalar b,c,d;
+b:=reval(list('quotient,list('times,cadddr(a),list('expt,caddr(a),2)),list('times,12,list('expt,'pi,2))));
+if cadr(a)=0 then c:=list('minus,'des)
+else c:=list('gb_rfs_fin,0,4,cadr(a),cadr(a),0);
+b:=reval(list('times,list('minus,b),c));
+c:=for each x in rloop collect car(x);
+if not(length(c)=1) then symerr("Some new situation need to be considered",nil);
+for each x in expriment_easy_list do if member(cadr(x),c) then 
+   d:=reval(list('expt,list('quotient,nth(x,4),nth(x,5)),2));
+if null(d) then d:=1;
+b:=reval(list('times,b,d));
+return b;
+end;
+
+symbolic procedure coupling_to_masslessboson();
+begin scalar a,b,c;
+a:=coupling_to_gaugeboson();
+for each x in a do <<
+   b:=par1(x,phymass);
+   if b=0 then c:=x.c;
+>>;
+return c;
+end;
+
+symbolic procedure coupling_to_gaugeboson();
+begin scalar a,b,c;
+a:=for each x in rloop collect car(x);
+for each x in gaugefields do if member(nth(x,5),a) then b:=nth(x,4).b;
+for each x in cdr(pchalist) do if member(cadr(x),b) then for each y in cddr(x) do c:=car(y).c;
+return c;
+end;
+
+
+
+symbolic procedure vertex_counterterm_generate1(a,b);
+begin scalar cc,c,d,dd,dd1;
+b:=vertex_counterterm_generate3(b);
+c:=vertex_coupling_oneloop(caar(a));
+cc:=cadr(a);
+dd:=get_feynmanrule_zero(caar(a));
+d:=reval(list('plus,list('times,c,cc),b));
+return list(d);
+end;
+
+
+symbolic procedure vertex_counterterm_generate2(a,b);
+begin scalar c;
+for each x in a do if not(member(x,b)) then c:=x.c;
+return c;
+end;
+
+symbolic procedure vertex_counterterm_generate3(a);
+for each x in a collect if atom(x) then x else
+if car(x)='tp then 2 
+else vertex_counterterm_generate3(x);
+
+symbolic procedure vertex_counterterm_generate4(a,b);
+begin scalar c,d,f;
+c:=for each x in b collect car(x);
+d:=a;
+if car(a)='quotient then a:=cadr(a);
+if car(a)='plus then for each x in cdr(a) do <<
+      for each y in x do if not(atom(y)) and member(car(y),c) then f:=(y.2).f;
+>> else for each x in a do if not(atom(x)) and member(car(x),c) then f:=(x.2).f;
+d:=reval(sublis(f,d));
+return d;
+end;
+
+symbolic procedure get_feynmanrule_zero(a);
+begin scalar b;
+b:=par1(car(a),cclist);
+return b;
+end;
+
+%--------------------------------------------------------------------
+%input:An expression  that include gamma matrix (g(l,v) and g(l,a,v)).
+%output:The coefficient of vector gamma matrix (g(l,v)).
+%--------------------------------------------------------------------
+algebraic procedure vector_gamma_matrix_coefficient(cc);
+begin scalar b,c,d;
+b:={g(l,a,~x)=>0};
+c:=(cc where b);
+d:={g(l,~x)=>1};
+c:=(c where d);
+return c;
+end;
+
+%-----------------------------------------------------------------
+%The date processing of the value of renormalization constants.
+%-----------------------------------------------------------------
+symbolic procedure counterterm_generate2(a);
+begin scalar b,c,b1,b2,b3,b4,d1,d2,d3,d4,d5,d6;
+for each x in a do << 
+     b1:=coefficient_extract(cdr(x),'des_uv,1);
+     b1:=reval(b1);
+     b2:=coefficient_extract(cdr(x),'des,1);
+     b2:=reval(b2);
+     b3:=coefficient_extract(cdr(x),'des,2);
+     b3:=reval(b3);
+     b4:=coefficient_constant_extract(cdr(x),list('list,'des_uv,'des));
+     b4:=reval(b4);
+     d1:=list(b1,b2,b3,b4);
+     d2:=for i:=1:4 collect mkid(car(x),i);
+     d3:=for i:=1:length(d1) collect nth(d2,i).nth(d1,i);
+     d4:=list('plus,list('times,'des_uv,car(d2)),list('times,'des,cadr(d2)),list('times,list('expt,'des,2),caddr(d2)),cadddr(d2));
+     d5:=nil;
+     d6:=nil;
+     for each y in d3 do if cdr(y)=0 then d5:=y.d5 else d6:=y.d6;
+     d4:=sublis(d5,d4);
+     d4:=car(x).reval(d4);
+     b:=d4.b;
+     c:=append(reverse(d6),c);
+>>;
+return list(b,c);
+end;
+
+algebraic procedure coefficient_extract(a,b,c);
+begin scalar c1;
+c1:=sub(b=0,df(a,b,c));
+return c1;
+end;
+
+algebraic procedure coefficient_constant_extract(a,b);
+begin scalar c,d;
+c:=a;
+d:=1;
+while d<=length(b) do <<
+      c:=sub(part(b,d)=0,c);
+      d:=d+1;
+>>;
+return c;
+end;
+
+%===========================Module 4 end==================================================)
+
+
+
+
+%a:='((ef -1 r1) (ef 1 r2) (p 0 r3 v)))=d1; 
+%b:=getml1(a,hhlist);
+
+%(============================Module 5====================================================
+%This part is set for checking the vertex which would be renormalized.
+%If the sum of one-loop result and counterterm has no ultraviolet devergence then 
+%continue to the next else stop and report error.
+%=========================================================================================
+symbolic procedure vertex_counterterm_check();
+begin scalar a,b,c,d,f;
+a:=vertex_oneparticle();
+b:=vertex_check_interface(a);
+wangout('renormalization_vertex_check_list,1);
+   terpri();
+   write "vertex_check_list:='",b,";"; terpri();
+   write "end$";
+wangout('renormalization_vertex_check_list,0);
+
+b:=for each x in b collect list(x,1);
+
+for each x in b do <<
+      c:=cadaar(x);
+      d:=get_vertex_counterterm(c);
+      d:=sublis(car(countertermlist),cdr(d));
+      d:=sublis(cadr(countertermlist),d);
+      f:=reval(list('plus,d,cadr(x)));
+      if not(freeof(f,'des_uv)) then symerr("vertex_counterterm_check can't pass",nil);
+>>;
+return b;
+end;
+
+symbolic procedure vertex_check_interface(a);
+begin scalar b,c,d,f;
+f:=for each x in inputlist collect car(x).cadr(x);
+b:=for each x in a collect vertex_check_interface1(x,f);
+for each x in b  do <<
+    c:=vertex_coupling_oneloop(x);
+    c:=coupling_rloop_form(c);
+    c:=list(x,c);
+    d:=c.d;
+>>;
+d:=reverse(d);
+return d;
+end;
+
+symbolic procedure vertex_check_interface1(a,c);
+begin scalar b,c;
+b:=for each x in cadr(a) collect find_mass1(car(x)).x;
+b:=sublis(c,b);
+b:=property_number_permutation_list(b);
+b:=for each x in b collect cdr(x);
+return list(car(a),b);
+end;
+
+symbolic procedure get_vertex_counterterm(a);
+begin scalar b;
+for each x in hhlist do if common_list(car(x),a) then b:=x;
+return b;
+end;
+%---------------------------------------------------------------------
+%This procedure is to select the elememt which the "car" is maximal.
+%And return the "cdr" of the element(If two elements is equal to each 
+%other then we choose the first one).
+%---------------------------------------------------------------------
+symbolic procedure property_number_maximal_element(a);
+if length(a)=1 then car(a) else 
+if caadr(a)>caar(a) then property_number_maximal_element(cdr(a))
+else property_number_maximal_element(car(a).cddr(a));
+
+%-------------------------------------------------------------------------------
+%This procedure is to place the element in order of the number size of
+%"car" of element.And return the list whose element is "cdr" of the element
+%of input(The order is from maximal to minmal).
+%-------------------------------------------------------------------------------
+symbolic procedure property_number_permutation_list(a);
+if length(a)=1 then a else
+begin scalar b,c;
+b:=property_number_maximal_element(a);
+c:=delfc(a,b);
+c:=property_number_permutation_list(c);
+return b.c;
+end;
+
+symbolic procedure find_mass1(a);
+begin scalar b;
+b:=par1(a,phymass);
+if null(b) then for each x in maslist2 do if car(x)=a then b:=nth(x,3);
+return b;
+end;
+%=======================================================================================)
+
+%(===========================model 5======================================================
+%--This part produce some lists for the latex file                   ---------------------
+%-- --------------------------------------------------------------- ---------------------
+symbolic procedure lat_generate();
+begin;
+lat_renorma_list();
+end;
+
+symbolic procedure lat_renorma_list();
+begin scalar a,b,c;
+a:=renorma_constant_addlist;
+b:=for each x in r_ksi_value collect car(x);
+for each x in car(a) do <<
+     if member(car(x),b) then c:=(car(x).list('times,list('plus,1,cadr(nth(x,3))),car(x))).c  else 
+     if freeof(phymass,car(x)) then c:=(car(x).list('times,list('plus,1,cadr(nth(x,3))),car(x))).c 
+     else c:=(car(x).list('plus,list('plus,car(x),cadr(nth(x,3))))).c;
+>>;
+return c;
+end;
+
+symbolic procedure mk_renorm_z(b); 
+begin scalar c;
+if atom(b) then b:=list(b); 
+for each x in b do c:=append(c,wyd_par1(x));
+b:=append(c,'(!} !")); 
+b:=append('(!" !\ d e l t a !  !Z _ !{ ),b); 
+return compress(b); 
+end; 
+
+symbolic procedure mk_renorm_zf(b); 
+begin scalar c,b0,b1,b2;
+if atom(b) then b:=list(b); 
+for each x in b do c:=append(c,wyd_par1(x));
+b:=append(c,'(!} !")); 
+b0:=append('(!" !\ d e l t a !  !Z _ !{ ),b); 
+b1:=append('(!" !\ d e l t a !  !Z ^ l _ !{ ),b); 
+b2:=append('(!" !\ d e l t a !  !Z ^ r _ !{ ),b); 
+return list(compress(b0),compress(b1),compress(b2)); 
+end; 
+  
+symbolic procedure mk_renorm_m(b); 
+begin; 
+b:=par1(b,latex_s_list);
+if not(null(b)) then <<
+b:=cdr(explode(b));
+b:=append('(!" !\ d e l t a ! ),b) >> else
+b:='(!" n o !  t h i s !  s y m b o l !");
+return compress(b); 
+end; 
+
+symbolic procedure par1(x,a)$
+begin scalar b;
+for each y in a do 
+    if b=nil and car(y)=x then b:=cadr(y);
+return b; 
+end; 
+
+symbolic procedure wyd_par1(b);
+begin;
+b:=par1(b,platexname);
+b:=explode(b);
+if car(b)='!" then b:=reverse(cdr(reverse(cdr(b))));
+return b;
+end;
+
+symbolic procedure mk_renorm_higher(a,aa);
+begin scalar b,c,d,f;
+b:=par1(a,latex_s_list);
+b:=explode(b);
+c:=for i:=1:7 collect nth(b,i);
+d:=explode(aa);
+d:=append('(_),d);
+d:=append(c,d);
+c:=length(b);
+f:=for i:=8:c collect nth(b,i);
+d:=append(d,f);
+d:=compress(d);
+return d;
+end; 
+
+%--------------------------------------------------------
+%Get the first n element of the list to form a new list.
+%--------------------------------------------------------
+symbolic procedure get_nth_ele(a,b);
+begin scalar c;
+c:=for i:=1:b collect nth(a,i);
+end;
+%---------------------------------------------------------
+%Leave out the the first n element of the list.
+%---------------------------------------------------------
+
+end;
+
+latex_s_list:='((fme "m_{e}")); 
+platexname:='((p "{\gamma}") (z z));
+
+b:='(p p); 
+b:=mk_renorm_z(b); 
+
+b:='(p z); 
+b:=mk_renorm_z(b); 
+
+b:='fme; 
+b:=mk_renorm_m(b); 
+
+

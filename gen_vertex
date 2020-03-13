@@ -1,0 +1,450 @@
+   symbolic(fluid'(interaction_chose  namel  inpl ncorrection  n_coupling 
+                   add_all_diag all_exp_list mlen_fsclist gongb_ylist atom_s_list 
+                   model_home physical_parameters_gen particle_table_gen model_gen symbole_list_gen
+                do_renormalization cc_diag_term_all cc_diag_term cc_alldiag
+                coupling_order_list rangelist wavefunl maslist abs_atom_list abs_rule_list nallterm 
+                funclist pdl base_list gcfactor color_basis first_i constantlist  inputlist  input_list   
+                w6p_list diagram_keep_list1 r_ksi_value drop_image_part_in_renormalization ctotal 
+                drop_leading_divergence
+         ));                  
+
+   symbolic(fluid'( palist chargelist hhlist pb1list nvertex cclist vbsmlist htionvvlist
+                    htionl pb0list abc_ord_list new_const_list bblist couplist htionll htionlist
+                    drop_tadpole_diag selfenergy colorlist mass_list lr_state hhh hhhh fhvlist bfhvlist 
+                    process_home phyinput amp_method feynman_rules  number_line
+         )); 
+
+   symbolic procedure gen_diag_init();
+   begin;
+   %----------------------------------------------
+   % Feynman diagrams for the vertex 
+   %
+   algebraic(load compact)$
+   sfwinput('cg)$
+   sfwinput('diagram_generator3)$
+   swinput('trace_file);
+   swinput('option_s)$
+   process_home:=model_home$
+   winput(physical_parameters_gen);
+   winput(particle_table_gen)$
+   winput(model_gen)$
+   for each x in inputlist do
+       if par1(car(x),input_list)=nil then input_list:=x.input_list;
+   phyinput:=for each x in phyinput collect if atom(x) then x else cadr(x); 
+   end;
+
+   symbolic procedure cal_diag_init();
+   begin;
+   %----------------------------------------------
+   %  calculate Feynman diagrams for the vertex 
+   %
+     amp_method:='1;
+     sfwinput('loop1);
+     sfwinput('gblib)$
+     sfwinput('feynman_pa_int1); 
+     sfwinput('gb_tensor)$
+     sfwinput('gb_scalar)$
+     sfwinput('gb_feynman_pa_int)$
+     sfwinput('gbsign)$   
+     winput(Feynman_rules)$
+     sfwinput('ltex)$   
+     funclist:=append('(dsqrt dcos dsin cons fem fe),funclist);
+     for each x in funclist do mkop x; 
+     for each x in r_ksi_value do input_list:=list(car(x),1).input_list; 
+   swinput('trace_file);
+   end;
+
+   symbolic procedure gen_diag(aa);  
+   begin scalar a,c; 
+   interaction_chose:=cadr(aa);   
+   namel:=for each x in car(aa) collect car(x);  
+   inpl:=for j:=1:length(namel) collect if j=1 then 1 else -1; 
+   ncorrection:='nil;  
+   selfenergy:=if length(namel)>2 then 'no else 'ok$
+   drop_tadpole_diag:=if length(namel)=1 then 'no else 'ok$
+   number_line:='0$
+   wmain94(ncorrection,4)$ 
+   a:=list(namel,inpl,cc_diag_term_all,cc_alldiag); 
+   c:='(cc_diag_term_all cc_alldiag alldiagram coupling_order_list rangelist 
+        group wavefunl maslist hpmuti fermline afermline linelist);
+   for each x in c do set(x,nil); 
+   ctotal:='((nout 1) (state 0) (nsy 1) (hand 0) (xi 3) (nauto 0));
+   return cadr(aa).a; 
+   end; 
+
+   array aa(100);
+   array aaaa(100); 
+
+
+   symbolic procedure cal_diag(c);  
+   %if equal(cadr(c),'(ef ef p)) then 
+   begin scalar a,b,g,n,sp,a1,a2,a3,b1,c0,m1,m2,int,c1,c2; 
+   %----------------------------------------------
+   %  calculate Feynman diagrams for the vertex 
+   %
+     off fort; 
+     a:=w6p_list;
+     amp_init();
+     w6p_list:=a; 
+     add_all_diag:='ok;
+     all_exp_list:='nil$  
+     constantlist:=nil;
+     first_i:=nil;
+     int:=car(c);
+     g:=reval('times.(for each x in int collect list('expt,car(x),cdr(x)))); 
+     c:=cdr(c); 
+     namel:=nth(c,1);
+     inpl:=nth(c,2);
+     for each x in nth(c,4) do set(car(x),cadr(x)); 
+%     if equal(namel,'(ef ef)) then diagram_keep_list1:='(3) 
+%     else diagram_keep_list1:='nil;
+     if nallterm=0 then return nil;
+     if length(namel)=2 then << 
+        algebraic(let p2.p2=s);
+        sp:=nth(getml1(car(namel),pdl),1); 
+        c0:=if not(car(namel) memq colorlist) then 1 else  
+            if sp=1 then '(lamdan 3 j2 j1)  
+            else '(times 2 (lamdant 3 j2 j1));  
+     >> else   
+     if length(namel)=3 then << 
+        m1:=nth(getml1(car(namel),pdl),2); 
+        m2:=nth(getml1(cadr(namel),pdl),2); 
+        if m1 neq m2 then symerr("wrong in eep renormalization",nil);
+ %%----------------------------------------------------------------------------------------
+ %   The condition for e_bar(p2)-e(p1)-p_u3(p1-p2) renormalization is:     
+ %       p3=p1-p2=>0,   ==>  p1.u3=m1*g(l,u3), p2.u3=m2*g(l,u3), p1.p1=m1**2, p2.p2=m2**2,
+ %      
+        algebraic(let p2.p2=m2**2,p3=0*p2,p1=p2);   
+ %       algebraic(let p2.p2=m2**2,p1.p1=m1**2,p3=p1-p2,p1.p2=m1**2-p32d2,p1.u3=p2.u3);   
+        c0:=if not(car(namel) memq colorlist) then 1 else  '(lamdan 3 j2 j1 j3);
+     >>; 
+      
+     for each x in car(nth(c,3)) do 
+         if atom(car(x)) then set(car(x),cadr(x)) else 
+         if caar(x)='aaaa then aaaa(cadar(x)):=cadr(x) else 
+         if caar(x)='aa then aa(cadar(x)):=cadr(x) 
+         else symerr("wrong in cal_diag",nil);  
+
+   debug("0 dimension=",ddim);
+   wmain_amplitude(); 
+   debug("1 dimension=",ddim);
+   debug("1 dimension=",color_basis);
+   if car(namel) memq colorlist then << 
+      if length(color_basis)=0 then c:=0 else 
+      if length(color_basis)=1 then << 
+         c:=reval(list('times,gcfactor,cadar(color_basis))); 
+         c:=reval(list('quotient,c,c0)); 
+      >> else  symerr("wrong in cal_diag",nil);  
+   >> else 
+   if gcfactor then  symerr("wrong in cal_diag",nil) 
+   else c:=1;  
+   if c=0 then return '((0 0) (0 0) (0 0));
+   g:=reval(list('quotient,g,c));
+   b:=get_bases_and_coef(g,'l1); 
+   b:=sublis('((p1 . p2)),b);
+   m1:=par1(1,mass_list);
+   if length(namel)=1 then <<  
+      a1:=epar1('1,b); 
+      a1:=sub_gb_fs_dfc(a1,m1); 
+      return list(a1,'(0 0)); 
+   >>; 
+   m2:=par1(2,mass_list); 
+   if find_atom('l1,b) then <<   
+      if (n:=par1(car(namel),lr_state))=nil then symerr("lr_state wrong",nil); 
+      if n=0 then << 
+         if length(namel)=2 then <<  
+            if m1=m2 then << 
+               a1:=epar1('(l1 p2),b); 
+               if a1=nil then symerr("wrong in all_exp_list",nil); 
+               if m1 neq 0 then a2:=epar1('(l1),b);
+            >> else << 
+            >>;    
+         >> else << 
+            a1:=epar1('(l1 u3),b);  
+            b1:=epar1('(times (l1) (cons p2 u3)),b);  
+            a1:=reval(algebraic(a1+b1*m2));
+         >>; 
+      >> else << 
+         if length(namel)=2 then <<  
+            if m1=m2 then << 
+               c1:=epar1('(l1 p2),b); 
+               c2:=epar1('(l1 a p2),b);  
+               a1:=reval(algebraic(c1+c2));
+               a2:=reval(algebraic(c1-c2));
+               if a1=nil then symerr("wrong in all_exp_list",nil); 
+               if m1 neq 0 then a3:=epar1('(l1),b); 
+            >> else << 
+            >>;    
+         >> else << 
+            a1:=epar1('(l1 u3),b);
+            b1:=epar1('(times (l1) (cons p2 u3)),b);  
+            a1:=reval(algebraic(a1+b1*m2));
+            a2:=epar1('(l1 a u3),b); 
+         >>; 
+      >>; 
+   >> else 
+   if find_atom('u1,b) and find_atom('u2,b) then << 
+      a1:=epar1('(cons u1 u2),b);
+      a2:=epar1('(times (cons p2 u1) (cons p2 u2)),b); 
+      if car(namel)='p and cadr(namel)='p then << 
+         if a1=nil or a1=nil or reval(list('quotient,a1,list('times,-1,'s,a2))) neq 1 
+         then symerr("wrong in all_exp_list",nil);  
+         a2:=nil; 
+      >> else <<  
+         a2:=reval(list('times,-1,'s,a2));
+      >>;  
+   >> else 
+   if find_atom('u1,b) then <<  
+      a1:=epar1('(cons p2 u1),b); 
+      a2:=0;
+   >> else 
+   if find_atom('u2,b) then <<  
+      a1:=epar1('(cons p2 u2),b); 
+      a2:=0;
+   >> else << a1:=epar1('1,b); a2:=nil; >>;
+   a1:=sub_gb_fs_dfc(a1,m1); 
+   a2:=if a2 then sub_gb_fs_dfc(a2,m1) else '(0 0);
+   a3:=if a3 then sub_gb_fs_dfc(a3,m1) else '(0 0); 
+   debug("3 dimension=",ddim);
+   return list(a1,a2,a3); 
+   end;  
+
+
+   symbolic procedure get_bases_and_coef(g,l1); 
+   begin scalar a,b;
+   a:=add_all_exp_list(g); 
+   b:=champ(base_list,nil,l1); 
+   if b then << 
+      b:=do_times(b); 
+      b:=do_order_cn(b); 
+      b:=for each x in b collect list(cadr(x),nth(a,car(x)));  
+   >> else <<  
+      write "The result for ",namel," is zero"; terpri(); 
+   >>; 
+   return b; 
+   end; 
+
+   symbolic procedure del_dfc(a);  
+   if atom(a) or find_atom('dfc,a)=nil then list(a) else 
+   if car(a)='quotient then del_dfc1(cadr(a),caddr(a)) 
+   else del_dfc1(a,1);
+
+   symbolic procedure del_dfc1(a,b);  
+   if atom(a) or car(a) neq 'plus then 
+      list(reval(list('quotient,take_away_dfc1(a),b))) else 
+   begin scalar c1,c2; 
+   for each x in cdr(a) do 
+       if find_atom('dfc,x) then c1:=reval(list('quotient,take_away_dfc(x),b)).c1  
+       else c2:=list('quotient,x,b).c2;   
+   return if c2 then reval('plus.c2).c1 else c1; 
+   end;  
+
+  symbolic procedure take_away_dfc(a);
+  reval(take_away_dfc1(reval(a)));
+
+  symbolic procedure take_away_dfc1(a);
+  if atom(a) then a else
+  if car(a)='dfc then take_away_dfc1(cadr(a))
+  else for each x in a collect take_away_dfc1(x);
+
+   symbolic procedure re_limit_p32d2(a); 
+   begin scalar b,c; 
+   if not(atom(a)) and car(a)='quotient then << 
+      b:=caddr(a); 
+      a:=cadr(a); 
+      b:=reval(sublis('((p32d2 . 0)),b)); 
+      if c=0 then symerr("wrong in re_limit_p32d2",nil); 
+   >>;
+   a:=re_limit_p32d2_1(a); 
+   return if b then list('quotient,a,b) else a; 
+   end; 
+
+   symbolic procedure re_limit_p32d2_1(a); 
+   if atom(a) then (if a='p32d2 then 0 else a) else 
+   if car(a)='times then 
+      if find_atom('ssssss,a) then a else  
+      if find_atom('p32d2,a) then 0 
+      else a 
+   else for each x in a collect re_limit_p32d2_1(x);  
+     
+
+   symbolic procedure sub_gb_fs_dfc(a,m); 
+   begin scalar b; 
+   a:=del_dfc(a); 
+   for each x in a do b:=sub_gb_fs(x,m,b); 
+   b:=for each x in b collect reval('plus.x); 
+   %b:=for each x in b collect for each y in x collect if y=0 then 0 else list('dfc,y);
+   %if length(namel)=3 and find_atom('p32d2,b) then b:=for each x in b collect reval(re_limit_p32d2(x)); 
+   return b; 
+   end; 
+
+
+   symbolic procedure sub_gb_fs(a,m,bb); 
+   begin scalar c,s,a0,a1;
+   s:='s; 
+   a:=sub_gb_fs0(a,m); 
+   algebraic(<< 
+     a:=(a where es_rules);
+     a:=sub(nes=0,a); 
+   >>);
+   a:=reval(a); 
+   c:=list(list('s,'expt,m,2)); 
+   a:=reval(gb_open_rfs(a,1));
+   a:=reval(gb_open_rfs(a,2));
+%   a:=reval(gb_open_rfs(a,4));
+   a:=fs_exp_check_zero(a,c,s,m); 
+   a:=drop_leading_s(s,a,m);
+   a0:=reval(sublis(c,a)); 
+   a1:=algebraic(df(a,s));  
+   a1:=reval(sublis(c,a1)); 
+   a0:=on_div(a0); 
+   a1:=on_div(a1); 
+   return if bb=nil then list(a0.nil,a1.nil)
+          else list(a0.car(bb),a1.cadr(bb))
+   end; 
+
+
+   symbolic procedure drop_leading_s(s,a,ma); 
+   if drop_leading_divergence neq 'ok then a else 
+   if atom(a) or car(a) neq 'quotient then a else 
+   if reval(algebraic(deg(caddr(a),s)))=0 then a else 
+   begin scalar b,c,n,m,cs; 
+   cs:=list(list('s,'expt,ma,2)); 
+   if reval(sublis(cs,caddr(a))) neq 0 then return a;
+   cs:=reval(algebraic(s-ma^2));
+   cs:=list(s.cs); 
+   a:=reval(sublis(cs,a));
+   b:=cadr(a); 
+   c:=caddr(a);  
+   n:=algebraic(deg(c,s)); 
+   b:=if atom(b) or car(b) neq 'plus then list(b) else cdr(b); 
+   b:=for each x in b collect if (m:=algebraic(deg(x,s)))<n then 0 else x; 
+   a:=reval(list('quotient,'plus.b,c)); 
+   cs:=reval(algebraic(s+ma^2));
+   cs:=list(s.cs); 
+   a:=reval(sublis(cs,a));
+   return a;
+   end; 
+
+
+
+
+
+   symbolic procedure fs_exp_check_zero(a,c,s,m); 
+   if atom(a) then a else 
+   begin scalar b,a0,a1; 
+   if car(a)='quotient then << b:=caddr(a); a:=cadr(a); >> else b:=1; 
+   a0:=reval(sublis(c,a)); 
+   a1:=algebraic(df(a,s));  
+   a1:=reval(sublis(c,a1));  
+   if reval(gb_open_rfs(a0,0))=0 then a0:=0;
+   if reval(gb_open_rfs(a1,0))=0 then a1:=0;
+   return reval(algebraic((a0+a1*(s-m**2))/b)); 
+   end; 
+
+   symbolic procedure sub_gb_fs0(a,m); 
+   if atom(a) then a else 
+   if car(a)='fs then sub_gb_fs1(a,m) 
+   else for each x in a collect sub_gb_fs0(x,m); 
+  
+   symbolic procedure sub_gb_fs1(a,m); 
+   begin scalar s,a0,a1; 
+   a:=gb_renormalization_int(a,m);  
+   if length(namel)=3 then return car(a);
+   s:='s;
+   a0:=car(a); 
+   a1:=cadr(a); 
+   return reval(algebraic(a0+a1*(s-m**2))); 
+   end; 
+   
+   symbolic procedure do_times(a); 
+   begin;
+   a:=if atom(a) or car(a) neq 'plus then list(a) else cdr(a);
+   a:=for each x in a collect do_times1(x); 
+   return a; 
+   end; 
+
+   symbolic procedure do_times1(a); 
+   if atom(a) or car(a) memq '(plus minus quotient) then symerr("wrong in do_times",nil) else 
+   if car(a)='times then do_times2(a)
+   else a;
+
+   symbolic procedure do_times2(a); 
+   begin scalar b;  
+   b:='times.b;
+   for each x in cdr(a) do  
+       if atom(x) or (car(x) neq 'times) then b:=x.b   
+       else b:=append(cdr(x),b); 
+   return reverse(b); 
+   end; 
+   
+   symbolic procedure do_order_cn(a); 
+   begin scalar b,c,d,k; 
+   c:=for j:=1:length(a) collect list(j); 
+   for each xx in a do << 
+       d:=if car(xx)='times then cdr(xx) else list(xx);   
+       for each x in d do if not(atom(x)) and car(x)='c then k:=cadr(x) else b:=x.b;
+       b:=if b=nil then 1 else 
+          if cdr(b)=nil then car(b) 
+          else 'times.reverse(b);
+       c:=mlist1(k,b,c); 
+       b:=nil;
+   >>;
+   return c; 
+   end;     
+
+
+   symbolic procedure add_all_exp_list(g);  
+   begin scalar a,b,c,n,cn,pcf; 
+   for each xx in all_exp_list do <<  
+       c:=reval(list('quotient,nth(xx,2),g));  
+       pcf:=nth(xx,3); 
+       if pcf then symerr("wrong in add_all_exp_list",nil);  
+       n:=0; 
+       for each y in nth(xx,4) do if y then <<  
+           n:=n+1; 
+           cn:=if n=3 then c else 
+               if n=2 then list('times,'nes,c) else 
+               if n=1 then list('times,'nes,'nes,c) else 
+               if n memq '(4) and all_zero_list(y) then nil 
+               else symerr("wrong n add_all_exp_list",nil);  
+           a:=for each x in reverse(y) collect reval(list('times,cn,x)); 
+           b:=add_pair(a,b);
+       >> else n:=n+1;
+   >>;
+   b:=for each x in b collect reval('plus.no_comm_div0(x));  
+   return b; 
+   end; 
+     
+   symbolic procedure no_comm_div0(a);
+   for each x in a collect no_comm_div(x);
+
+   symbolic procedure no_comm_div(a);
+   if atom(a) or car(a) neq 'quotient or find_atom('plus,caddr(a))=nil then a  
+   else list('dfc,a);
+
+   symbolic procedure add_pair(a,b); 
+   if null(a) then b else 
+   if null(b) then for each x in a collect list(x) 
+   else (car(a).car(b)).add_pair(cdr(a),cdr(b));  
+
+
+   
+   symbolic procedure gen_vertex(a,b);  
+   begin;  
+   drop_image_part_in_renormalization:='ok;
+   algebraic(gamma(2));
+   gen_diag_init();
+   do_renormalization:='ok;
+   a:=for each x in a collect x.gen_diag(x); 
+   b:=for each x in b collect x.gen_diag(cadar(x).cdr(x)); 
+   debug("okok gen_diag",nil);
+   cal_diag_init();
+   a:=for each x in a collect car(x).cal_diag(cdr(x));
+   b:=for each x in b collect car(x).cal_diag(cdr(x));
+   vecdim 4;
+   return list(a,b);
+   end;  
+
+
+end;   

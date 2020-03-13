@@ -1,0 +1,133 @@
+%----------------------------------------------------------------------------------------------------------------------
+%**Get the general expressions of the renormalization constants.
+%**Input: counterterms: hhlist, renorma_target: the cadr of result of do_all_renormalizaltion. 
+%         renorma_results: the variable to conserve the expressions of renormalization constants. 
+%**Output:
+%--The general expressions of renormalization constants with the symbol of selfenergy.
+%----------------------------------------------------------------------------------------------------------------------
+symbolic(fluid'(general_renorma_mass general_renorma_field));
+
+symbolic procedure renorma_general(renorma_targets);
+begin scalar renorma_results;
+general_renorma_mass:= for each x in cadr(renorma_constant_addlist) collect caddr(x);
+general_renorma_field:= renorma_field(car(renorma_constant_addlist));
+for each x in renorma_targets do 
+	renorma_results:=append(renorma_general1(x), renorma_results);
+return renorma_results;
+end;
+
+symbolic procedure renorma_field(a);
+begin scalar fields;
+for each x in a do if cadr(x)=3 then fields:=list(car(x), cadr(cadr(nth(x,3)))).fields
+	else list(car(x), cadr(cadr(car(nth(x,3)))), cadr(cadr(car(nth(x,3)))));
+return fields;
+end;
+
+%--To check the renorma_target type.(three types total: tadpole, propagator, three or more particles in vertex)
+symbolic procedure renorma_general1(renorma_target);
+if length(car(renorma_target))=1 then renorma_general_tadpole(renorma_target)
+else if length(car(renorma_target))=2 then renorma_general_propa(renorma_target)
+else renorma_general_vertex(renorma_target);
+
+%--Renormalization for tadpole. --SM--
+symbolic procedure renorma_general_tadpole(renorma_target);
+begin scalar par_name, tad_name, tadloop, renorma_cons, eq1, renorma_result;
+par_name:=caaar(renorma_target);
+tad_name:=par1(par_name, ctadpole_list);
+tadloop:=mkid('loop, tad_name);
+renorma_cons:=par1(tad_name, caddr(renorma_constant_addlist));
+eq1:=list('plus, renorma_cons, tadloop);
+renorma_result:=cadr(wsolve(list(eq1), list(renorma_cons)));
+return renorma_result;
+end;
+
+%--Renormalization for propagator. 
+symbolic procedure renorma_general_propa(renorma_target);
+begin scalar par_name, par_type, renorma_result;
+par_name:=caaar(renorma_target);
+par_type:=particle_type(par_name,splist);
+renorma_result:=
+	if par_type='sf then renorma_general_fermion(renorma_target)
+	else if par_type='s0 then renorma_general_scalar(renorma_target)
+	else if par_type='s1 then renorma_general_gauge(renorma_target)
+	else symerr("The unknown particle type in procedure renorma_general_propa", nil);
+return renorma_result;
+end;
+
+symbolic procedure renorma_general_fermion(renorma_target);
+begin scalar par_name, renorma_result, counterterms, fermion_loop;
+par_name:=caaar(renorma_target);
+for each x in hhlist do 
+	if  common_list(car(renorma_target), car(x)) then counterterms:= cdr(x);
+%if 1 then left-right non-symmetric fermion.
+fermion_loop:= fermion_loop_generator(par1(par_name,lr_state), car(renorma_target));
+renorma_list:=list(1);
+return renorma_result;
+end;
+
+
+symbolic procedure renorma_general_scalar(renorma_target);
+begin scalar temp, par_mass, par_mass1, par_pp, renorma_result, counterterms, scalar_loop, eq1,
+	scalar_rules, renorma_cons;
+renorma_result=list(1);
+for each x in hhlist do 
+	if  common_list(car(renorma_target), car(x)) then counterterms:= cdr(x);
+temp:= for each x in car(renorma_target) collect car(x);
+if not(car(temp)=cadr(temp)) then symerr("It has not consider the situation of mixxing higgs", nil);
+scalar_loop:= scalar_loop_generator(car(renorma_target));
+par_mass:= find_mass(car(temp));
+if not(member(par_mass,phyinput)) then <<
+	for each x in maslist2 do if cadr(x)=par_mass then par_mass1:=caddr(x)
+	>> else par_mass1:=par_mass;
+par_pp:=for each x in car(renorma_target) collect list('cons,caddr(x),caddr(x));
+scalar_rules:=algebraic{symbolic(car(par_pp))=>par_mass1**2, symbolic(cadr(par_pp))=>par_mass1**2};
+eq1:=list('plus, counterterms, car(scalar_loop));
+algebraic(<< 
+	eq1:=(eq1 where scalar_rules);
+   >>);
+renorma_cons:= par1(car(temp),general_renorma_field).renorma_cons;
+if par_mass=par_mass1 then <<
+	renorma_cons:=par1(par_mass,general_renorma_mass).renorma_cons;
+	>> else renorma_results:=cadr(wsolve(list(eq1),renorma_cons));
+	
+	
+return renorma_result;
+end;
+
+symbolic procedure renorma_general_gauge(renorma_target);
+list(1);
+
+symbolic procedure renorma_general_vertex(renorma_target);
+list(1);
+
+%********************************************************
+%**All kinds of loop generator.
+%********************************************************
+symbolic procedure fermion_loop_generator(st, renorma_target);
+begin scalar temp, par_name, loop, loop_prime, loopl, loopr, loops, par_mass, pl, pr;
+temp:=for each x in renorma_target collect car(x);
+if car(temp)=cadr(temp) then par_mass:=find_mass(car(temp)) 
+else symerr("It do not yet renormalize the CKM in this package",nil);
+if st=1 then <<
+	pp:=reval(algebraic(g(l,r1)));
+	pl:=reval(algebraic((1-g(l,a))/2));
+	pr:=reval(algebraic((1+g(l,a))/2));
+	loopl:=mkid(mkid('loopfermionleft,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+	loopl:=mkid(mkid('loopfermionright,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+	loopl:=mkid(mkid('loopfermionscalar,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+	loop:=list('plus, list('times, pp, pl,loopl), list('times, pp, pr, loopr), list('times, par_mass,loops));
+	loop:=reval(loop);
+	>> else loop:=mkid(mkid('loopfermion,'_),mkid(mkid(car(temp),'_),cadr(temp)));
+return loop;
+end;
+
+symbolic procedure scalar_loop_generator(renorma_target);
+begin scalar temp, loop, loopdf;
+temp:= for each x in renorma_target collect car(x);
+loop:= mkid(mkid('loopscalar,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+loopdf:= mkid('df,loop);
+return list(loop,loopdf);
+end;
+%********************************************************
+%********************************************************
+
