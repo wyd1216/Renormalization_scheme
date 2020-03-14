@@ -19,7 +19,7 @@ end;
 symbolic procedure renorma_field(a);
 begin scalar fields;
 for each x in a do if cadr(x)=3 then fields:=list(car(x), cadr(cadr(nth(x,3)))).fields
-	else list(car(x), cadr(cadr(car(nth(x,3)))), cadr(cadr(car(nth(x,3)))));
+	else fields:=list(car(x), cadr(cadr(car(nth(x,3)))), cadr(cadr(car(nth(x,3))))).fields;
 return fields;
 end;
 
@@ -55,23 +55,55 @@ return renorma_result;
 end;
 
 symbolic procedure renorma_general_fermion(renorma_target);
-begin scalar par_name, renorma_result, counterterms, fermion_loop;
+begin scalar temp, par_name, renorma_result, counterterms, fermion_loop, par_mass,
+	eqall, eq1, eq2, eq3, par_p, par_pslash5, par_pslash, renorma_cons;
+temp:=for each x in car(renorma_target) collect car(x);
 par_name:=caaar(renorma_target);
 for each x in hhlist do 
 	if  common_list(car(renorma_target), car(x)) then counterterms:= cdr(x);
+for each x in car(renorma_target) do 
+	if freeof(counterterms,caddr(x)) then nil else par_p:=caddr(x);
+par_pslash:=reval(list('g, 'l, par_p));
+par_pslash5:=reval(list('g, 'l, 'a, par_p));
+par_mass:= find_mass(car(temp));
+renorma_cons:=par1(par_mass,general_renorma_mass).renorma_cons;
+renorma_cons:= append(getml1(car(temp),general_renorma_field),renorma_cons);
 %if 1 then left-right non-symmetric fermion.
 fermion_loop:= fermion_loop_generator(par1(par_name,lr_state), car(renorma_target));
+eqall:=reval(list('plus,fermion_loop,counterterms));
+rules1:=algebraic({par_pslash5=>0});
+algebraic(<< 
+	eq1:=gamma5_delete(eqall);
+   >>);
+eq1:=reval(eq1);
+%eq2:=reval(algebraic(df(eqall,par_pslash5,1)));
+eq2:=reval(list('plus, list('minus, eq1), eqall));
+eq2:=reval(gamma5_unit(eq2));
 renorma_list:=list(1);
 return renorma_result;
 end;
 
+algebraic procedure gamma5_delete(cc);
+begin scalar b,c,d;
+b:={g(l,a,~x)=>0, g(l,a)=>0};
+c:=(cc where b);
+return c;
+end;
+
+algebraic procedure gamma5_unit(cc);
+begin scalar b,c,d;
+b:={g(l,a,~x)=>1, g(l,a)=>1};
+c:=(cc where b);
+return c;
+end;
 
 symbolic procedure renorma_general_scalar(renorma_target);
 begin scalar temp, par_mass, par_mass1, par_pp, renorma_result, counterterms, scalar_loop, eq1,
-	scalar_rules, renorma_cons;
+	scalar_rules, renorma_cons, counterm_df, eq2;
 renorma_result=list(1);
 for each x in hhlist do 
 	if  common_list(car(renorma_target), car(x)) then counterterms:= cdr(x);
+%----temp:=list(field1 field2) ---------------------
 temp:= for each x in car(renorma_target) collect car(x);
 if not(car(temp)=cadr(temp)) then symerr("It has not consider the situation of mixxing higgs", nil);
 scalar_loop:= scalar_loop_generator(car(renorma_target));
@@ -79,18 +111,22 @@ par_mass:= find_mass(car(temp));
 if not(member(par_mass,phyinput)) then <<
 	for each x in maslist2 do if cadr(x)=par_mass then par_mass1:=caddr(x)
 	>> else par_mass1:=par_mass;
-par_pp:=for each x in car(renorma_target) collect list('cons,caddr(x),caddr(x));
-scalar_rules:=algebraic{symbolic(car(par_pp))=>par_mass1**2, symbolic(cadr(par_pp))=>par_mass1**2};
+for each x in car(renorma_target) do 
+	if freeof(counterterms,caddr(x)) then nil else par_pp:=list('cons,caddr(x),caddr(x));
+%----algebraic rules for substitution in expressions.---
+scalar_rules:=algebraic({par_pp=>par_mass1**2, par_pp=>par_mass1**2});
+counterm_df:=counterterms;
+counterm_df:=reval(algebraic(df(counterterms,par_pp,1)));
 eq1:=list('plus, counterterms, car(scalar_loop));
+eq2:=list('plus, counterm_df, cadr(scalar_loop));
 algebraic(<< 
 	eq1:=(eq1 where scalar_rules);
    >>);
 renorma_cons:= par1(car(temp),general_renorma_field).renorma_cons;
 if par_mass=par_mass1 then <<
 	renorma_cons:=par1(par_mass,general_renorma_mass).renorma_cons;
-	>> else renorma_results:=cadr(wsolve(list(eq1),renorma_cons));
-	
-	
+	renorma_result:=cadr(wsolve(list(eq1, eq2), renorma_cons));
+	>> else renorma_result:=cadr(wsolve(list(eq2),renorma_cons));
 return renorma_result;
 end;
 
@@ -113,8 +149,8 @@ if st=1 then <<
 	pl:=reval(algebraic((1-g(l,a))/2));
 	pr:=reval(algebraic((1+g(l,a))/2));
 	loopl:=mkid(mkid('loopfermionleft,'_), mkid(mkid(car(temp),'_),cadr(temp)));
-	loopl:=mkid(mkid('loopfermionright,'_), mkid(mkid(car(temp),'_),cadr(temp)));
-	loopl:=mkid(mkid('loopfermionscalar,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+	loopr:=mkid(mkid('loopfermionright,'_), mkid(mkid(car(temp),'_),cadr(temp)));
+	loops:=mkid(mkid('loopfermionscalar,'_), mkid(mkid(car(temp),'_),cadr(temp)));
 	loop:=list('plus, list('times, pp, pl,loopl), list('times, pp, pr, loopr), list('times, par_mass,loops));
 	loop:=reval(loop);
 	>> else loop:=mkid(mkid('loopfermion,'_),mkid(mkid(car(temp),'_),cadr(temp)));
