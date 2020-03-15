@@ -56,7 +56,7 @@ end;
 
 symbolic procedure renorma_general_fermion(renorma_target);
 begin scalar temp, par_name, renorma_result, counterterms, fermion_loop, par_mass,
-	eqall, eq1, eq2, eq3, par_p, par_pslash5, par_pslash, renorma_cons;
+	eqall, eq1, eq2, eq3, par_p, par_pp, par_pslash5, par_pslash, renorma_cons;
 temp:=for each x in car(renorma_target) collect car(x);
 par_name:=caaar(renorma_target);
 for each x in hhlist do 
@@ -65,23 +65,53 @@ for each x in car(renorma_target) do
 	if freeof(counterterms,caddr(x)) then nil else par_p:=caddr(x);
 par_pslash:=reval(list('g, 'l, par_p));
 par_pslash5:=reval(list('g, 'l, 'a, par_p));
+par_pp:=reval(list('cons, par_p, par_p));
 par_mass:= find_mass(car(temp));
 renorma_cons:=par1(par_mass,general_renorma_mass).renorma_cons;
 renorma_cons:= append(getml1(car(temp),general_renorma_field),renorma_cons);
 %if 1 then left-right non-symmetric fermion.
 fermion_loop:= fermion_loop_generator(par1(par_name,lr_state), car(renorma_target));
-eqall:=reval(list('plus,fermion_loop,counterterms));
-rules1:=algebraic({par_pslash5=>0});
+eqall:=reval(list('plus,car(fermion_loop),counterterms));
+rules1:=algebraic({par_pslash=>par_mass});
+eq2:=reval(list('plus, list('minus, eq1), eqall));
+fermion_loop:='list.cadr(fermion_loop);
 algebraic(<< 
 	eq1:=gamma5_delete(eqall);
+	eq3:=fermion_onsh(eq1,par_p,par_mass);
+	eq1:=fermion_df_onsh(eq1, fermion_loop, par_pslash, par_mass);
    >>);
 eq1:=reval(eq1);
-%eq2:=reval(algebraic(df(eqall,par_pslash5,1)));
-eq2:=reval(list('plus, list('minus, eq1), eqall));
 eq2:=reval(gamma5_unit(eq2));
-renorma_list:=list(1);
+eq3:=reval(eq3);
+renorma_list:=wsolve(list(eq1,eq2,eq3),renorma_cons);
 return renorma_result;
 end;
+
+algebraic procedure fermion_onsh(expss, par_p, par_mass);
+begin scalar rules;
+rules:={g(~x, par_p)=>par_mass};
+expss:=(expss where rules);
+%expss:=sub(g(~x,par_p)=par_mass, expss);
+return expss;
+end;
+
+algebraic procedure fermion_df_onsh(eqt, selfenergy, dex, par_mass);
+begin scalar ss,ss1, rules, rules1, rules2;
+rules:={};
+for each x in selfenergy do depend(x,dex);
+for i:=1:length(selfenergy) do  <<
+ss:=part(selfenergy,i);
+ss1:=mkid('df,ss);
+rules2:={df(ss, dex)=>ss1};
+rules:=append(rules,rules2);
+>>;
+rules1:={dex=>par_mass};
+eqt:=df(eqt,dex);
+eqt:=(eqt where rules);
+eqt:=(eqt where rules1);
+return eqt;
+end;
+
 
 algebraic procedure gamma5_delete(cc);
 begin scalar b,c,d;
@@ -140,7 +170,7 @@ list(1);
 %**All kinds of loop generator.
 %********************************************************
 symbolic procedure fermion_loop_generator(st, renorma_target);
-begin scalar temp, par_name, loop, loop_prime, loopl, loopr, loops, par_mass, pl, pr;
+begin scalar temp, par_name, loop, loop_prime, loopl, loopr, loops, par_mass, pl, pr, loop_ele;
 temp:=for each x in renorma_target collect car(x);
 if car(temp)=cadr(temp) then par_mass:=find_mass(car(temp)) 
 else symerr("It do not yet renormalize the CKM in this package",nil);
@@ -154,7 +184,8 @@ if st=1 then <<
 	loop:=list('plus, list('times, pp, pl,loopl), list('times, pp, pr, loopr), list('times, par_mass,loops));
 	loop:=reval(loop);
 	>> else loop:=mkid(mkid('loopfermion,'_),mkid(mkid(car(temp),'_),cadr(temp)));
-return loop;
+loop_ele:=list(loopl,loopr,loops);
+return list(loop,loop_ele);
 end;
 
 symbolic procedure scalar_loop_generator(renorma_target);
